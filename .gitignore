@@ -1,0 +1,37 @@
+# dependencies
+/node_modules
+
+# production
+/build
+/dist
+/.next
+
+# misc
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# vscode settings
+.vscode/
+
+# coverage reports
+coverage/
+
+# optional IDE configs
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# optional OS files
+Thumbs.db

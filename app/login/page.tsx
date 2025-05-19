@@ -40,6 +40,7 @@ export default function LoginPage() {
     defaultValues,
   })
 
+const Genarate_Token = process.env.NEXT_PUBLIC_API_URL_AUTH
 const Base_Url = process.env.NEXT_PUBLIC_API_URL
 
   // Handle form submission
@@ -48,7 +49,7 @@ const Base_Url = process.env.NEXT_PUBLIC_API_URL
 
     try {
       // Step 1: Generate token
-      const tokenResponse = await fetch(`${Base_Url}auth/generateToken`, {
+      const tokenResponse = await fetch(`${Genarate_Token}auth/generateToken`, {
         method: "POST",
         headers: {
           "Authorization": "Basic dGVzdDAwMDE6YWRtaW5AMTIz",
