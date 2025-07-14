@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, UserMinus, Calendar, TrendingUp, TrendingDown } from "lucide-react";
+import { Users, UserMinus, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmployeeStatus } from "@/lib/types";
 
@@ -8,8 +8,6 @@ interface DashboardStatCardProps {
   value: number;
   description: string;
   icon: "users" | "user-minus" | "calendar";
-  trend: "up" | "down";
-  trendValue: string;
   status: EmployeeStatus;
 }
 
@@ -18,8 +16,6 @@ export default function DashboardStatCard({
   value,
   description,
   icon,
-  trend,
-  trendValue,
   status,
 }: DashboardStatCardProps) {
   // Determine icon to display
@@ -72,21 +68,7 @@ export default function DashboardStatCard({
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
         <CardDescription>{description}</CardDescription>
-        <div className="flex items-center pt-1">
-          {trend === "up" ? (
-            <TrendingUp className="mr-1 h-3 w-3 text-green-500" />
-          ) : (
-            <TrendingDown className="mr-1 h-3 w-3 text-red-500" />
-          )}
-          <span
-            className={cn(
-              "text-xs font-medium",
-              trend === "up" ? "text-green-500" : "text-red-500"
-            )}
-          >
-            {trendValue} from yesterday
-          </span>
-        </div>
+
       </CardContent>
     </Card>
   );

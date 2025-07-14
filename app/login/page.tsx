@@ -40,8 +40,8 @@ export default function LoginPage() {
     defaultValues,
   })
 
-const Genarate_Token = process.env.NEXT_PUBLIC_API_URL_AUTH
-const Base_Url = process.env.NEXT_PUBLIC_API_URL
+  const Genarate_Token = process.env.NEXT_PUBLIC_API_URL_AUTH
+  const Base_Url = process.env.NEXT_PUBLIC_API_URL
 
   // Handle form submission
   async function onSubmit(data: LoginFormValues) {
@@ -84,7 +84,7 @@ const Base_Url = process.env.NEXT_PUBLIC_API_URL
         }),
       })
 
-       // console.log("authResponse", authResponse);
+      // console.log("authResponse", authResponse);
 
       if (!authResponse.ok) {
         throw new Error("Authentication failed")

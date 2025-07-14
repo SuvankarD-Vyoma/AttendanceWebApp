@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useRouter } from "next/navigation";
+import { deleteCookie } from "cookies-next";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
 
 interface MainHeaderProps {
   isSidebarOpen: boolean;
@@ -21,7 +24,20 @@ interface MainHeaderProps {
 export default function MainHeader({ isSidebarOpen, onToggleSidebar }: MainHeaderProps) {
   const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
-  
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // Clear all auth-related cookies
+    deleteCookie("token");
+    deleteCookie("userId");
+    deleteCookie("username");
+    deleteCookie("userRole");
+    deleteCookie("userFullName");
+
+    // Redirect to login page
+    router.push("/login");
+  };
+
   return (
     <header className="w-full border-b border-border bg-background sticky top-0 z-10">
       <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -40,7 +56,7 @@ export default function MainHeader({ isSidebarOpen, onToggleSidebar }: MainHeade
             />
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -61,7 +77,7 @@ export default function MainHeader({ isSidebarOpen, onToggleSidebar }: MainHeade
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -80,7 +96,7 @@ export default function MainHeader({ isSidebarOpen, onToggleSidebar }: MainHeade
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative flex items-center gap-2 h-8 pl-0 pr-2">
@@ -105,7 +121,7 @@ export default function MainHeader({ isSidebarOpen, onToggleSidebar }: MainHeade
               <DropdownMenuItem>
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>

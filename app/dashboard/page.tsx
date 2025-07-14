@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import DashboardStatCard from "@/components/dashboard/dashboard-stat-card";
 import AttendanceChart from "@/components/dashboard/attendance-chart";
 import RecentActivity from "@/components/dashboard/recent-activity";
-import DepartmentAttendance from "@/components/dashboard/department-attendance";
 import { EmployeeStatus } from "@/lib/types";
 import Link from "next/link";
 import { getCookie } from "cookies-next";
@@ -17,6 +16,8 @@ export default function DashboardPage() {
     absentCount: 0,
     onLeaveCount: 0,
     totalEmployees: 1, // avoid division by zero
+    attendanceRate: 0,
+    absenceRate: 0
   });
 
   useEffect(() => {
@@ -69,6 +70,8 @@ export default function DashboardPage() {
           absentCount: d.absent_count,
           onLeaveCount: d.on_leave_count,
           totalEmployees: d.present_count + d.absent_count + d.on_leave_count || 1,
+          attendanceRate: d.attendance_rate,
+          absenceRate: d.absence_rate,
         });
       } catch (err) {
         // fallback or error handling
@@ -77,6 +80,8 @@ export default function DashboardPage() {
           absentCount: 0,
           onLeaveCount: 0,
           totalEmployees: 1,
+          attendanceRate: 0,
+          absenceRate: 0
         });
       }
     }
@@ -105,39 +110,37 @@ export default function DashboardPage() {
           <DashboardStatCard
             title="Present Today"
             value={stats.presentCount}
-            description={`${Math.round(stats.presentCount / stats.totalEmployees * 100)}% of total employees`}
+            description={`${stats.attendanceRate.toFixed(0)}% of total employees`}
             icon="users"
             trend="up"
-            trendValue="3%"
+            trendValue={`${stats.attendanceRate.toFixed(0)}%`}
             status={EmployeeStatus.PRESENT}
           />
         </Link>
-        
+
         <Link href="/attendance?status=absent">
           <DashboardStatCard
             title="Absent Today"
             value={stats.absentCount}
             description={`${Math.round(stats.absentCount / stats.totalEmployees * 100)}% of total employees`}
             icon="user-minus"
-            trend="down"
-            trendValue="1%"
             status={EmployeeStatus.ABSENT}
           />
         </Link>
-        
+
         <Link href="/attendance?status=on_leave">
           <DashboardStatCard
             title="On Leave Today"
             value={stats.onLeaveCount}
-            description={`${Math.round(stats.onLeaveCount / stats.totalEmployees * 100)}% of total employees`}
+            description={`0% of total employees`}
             icon="calendar"
-            trend="up"
-            trendValue="2%"
+
+
             status={EmployeeStatus.ON_LEAVE}
           />
         </Link>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
         <Card className="col-span-full lg:col-span-2">
           <CardHeader>
             <CardTitle>Attendance Trends</CardTitle>
@@ -149,21 +152,10 @@ export default function DashboardPage() {
             <AttendanceChart />
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Department Attendance</CardTitle>
-            <CardDescription>
-              Attendance by department for today
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DepartmentAttendance />
-          </CardContent>
-        </Card>
+
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* <div className="grid gap-4 md:grid-cols-2">
         <Card className="col-span-full">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
@@ -175,7 +167,7 @@ export default function DashboardPage() {
             <RecentActivity />
           </CardContent>
         </Card>
-      </div>
+      </div> */}
     </div>
   );
 }

@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Vyoma Innovus Global - Attendance Dashboard',
-  description: 'Employee attendance tracking system',
+  description: 'Employee attendance tracking system'
 };
 
 export default function RootLayout({
