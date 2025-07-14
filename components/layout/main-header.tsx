@@ -101,7 +101,7 @@ export default function MainHeader({ isSidebarOpen, onToggleSidebar }: MainHeade
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative flex items-center gap-2 h-8 pl-0 pr-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/admin-avatar.jpg" alt="Admin" />
+                  {/* <AvatarImage src="/admin-avatar.jpg" alt="Admin" /> */}
                   <AvatarFallback>AD</AvatarFallback>
                 </Avatar>
                 <span className="hidden sm:inline-block font-medium text-sm">

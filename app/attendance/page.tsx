@@ -48,14 +48,9 @@ interface AttendanceRecord {
   attendance_status: string | null;
 }
 
-interface AttendancePageProps {
-  searchParams: {
-    status?: string;
-    date?: string;
-  };
-}
 
-export default function AttendancePage({ searchParams }: AttendancePageProps) {
+
+export default function AttendancePage() {
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -138,7 +133,7 @@ export default function AttendancePage({ searchParams }: AttendancePageProps) {
     fetchAttendanceData();
   }, [startDate, endDate]);
 
-  // Add this after the pagination state calculations
+
   const sortedData = [...attendanceData].filter((row) => {
     const searchLower = search.toLowerCase();
     const nameMatch = row.employee_name?.toLowerCase().includes(searchLower);

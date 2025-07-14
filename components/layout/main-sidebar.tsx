@@ -114,12 +114,12 @@ export default function MainSidebar({ isOpen, onToggle }: MainSidebarProps) {
             <div className="flex items-center">
               <Link href="/dashboard" className="flex items-center">
                 {isCollapsed ? (
-                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold text-lg">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-black font-semibold text-lg">
                     VIG
                   </div>
                 ) : (
-                  <h1 className="text-lg font-semibold ml-2">
-                    Vyoma Innovus
+                  <h1 className="text-sm font-semibold ml-2">
+                    Vyoma Innovus Global Private Limited
                   </h1>
                 )}
               </Link>

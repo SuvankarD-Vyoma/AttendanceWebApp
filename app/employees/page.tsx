@@ -14,24 +14,50 @@ import { useState, useEffect } from "react";
 import { getCookie } from "cookies-next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+
+// Type definitions for better type safety
+type Employee = {
+  id?: string | number;
+  user_id?: string | number;
+  employee_name?: string;
+  avatar?: string;
+  email_id?: string;
+  department_name?: string;
+  position?: string;
+  designation_name?: string;
+  contact_number?: string;
+  contact_no?: string;
+  status?: string;
+};
+
+type UserDetails = {
+  [key: string]: any;
+  employee_image?: string;
+  user_full_name?: string;
+  designation?: string;
+  emp_organization?: string;
+};
 
 export default function EmployeesPage() {
   const router = useRouter();
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [filteredEmployees, setFilteredEmployees] = useState<any[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [userDetails, setUserDetails] = useState<any>(null);
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // You can adjust this as needed
 
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
         const admin_emp_id = (getCookie("userId") as string) || "";
         const decoded = decodeURIComponent(admin_emp_id);
-        console.log(decoded);
-        const response = await getEmployeeList(decoded);
+        const userIdNum = Number(decoded);
+        const response = await getEmployeeList(userIdNum);
         setEmployees(response.data);
         setFilteredEmployees(response.data);
       } catch (error) {
@@ -44,27 +70,27 @@ export default function EmployeesPage() {
   // Search functionality
   useEffect(() => {
     const filtered = (employees || []).filter(employee =>
-      employee.employee_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.email_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.department_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.position?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.designation_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      (employee.employee_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (employee.email_id?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (employee.department_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (employee.position?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (employee.designation_name?.toLowerCase() || "").includes(searchQuery.toLowerCase())
     );
     setFilteredEmployees(filtered);
   }, [searchQuery, employees]);
 
   const handleAddEmployeeButton = () => {
     router.push('/employees/add-employee');
-    console.log("Add Employee Button Clicked");
   };
 
-  const handleView = async (employee) => {
+  const handleView = async (employee: Employee) => {
     setModalOpen(true);
     setSelectedEmployee(employee);
     setLoadingDetails(true);
     setUserDetails(null);
     try {
-      const res = await getUserDetailsByUserID(employee.user_id);
+      const userId = String(employee.user_id ?? "");
+      const res = await getUserDetailsByUserID(userId);
       setUserDetails(res.data);
     } catch (err) {
       setUserDetails(null);
@@ -72,20 +98,26 @@ export default function EmployeesPage() {
     setLoadingDetails(false);
   };
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentEmployees = filteredEmployees.slice(startIndex, endIndex);
+
+  // PATCHED getStatusColor function for better dark mode contrast
+  const getStatusColor = (status: string = "") => {
+    switch (status.toLowerCase()) {
       case 'active':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20';
       case 'inactive':
-        return 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900/20 dark:text-slate-400 dark:border-slate-800';
+        return 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20';
       case 'pending':
-        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800';
+        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20';
       default:
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20';
     }
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
       return new Date(dateString).toLocaleDateString('en-US', {
@@ -99,12 +131,13 @@ export default function EmployeesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950">
       <div className="p-6 space-y-8">
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0 gap-4">
           <div className="space-y-2">
-            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-blue-800 to-indigo-700 dark:from-slate-100 dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent">
+            {/* PATCHED: Gradient text for h1 */}
+            <h1 className="text-4xl font-bold tracking-tight text-blue-950 dark:text-white bg-clip-text text-transparent">
               Employee Directory
             </h1>
             <p className="text-slate-600 dark:text-slate-400 text-lg">
@@ -115,10 +148,11 @@ export default function EmployeesPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              {/* PATCHED: Solid input backgrounds */}
               <Input
                 type="search"
                 placeholder="Search employees, departments, positions..."
-                className="pl-10 w-full sm:w-80 h-11 border-slate-200/60 dark:border-slate-700/60 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+                className="pl-10 w-full sm:w-80 h-11 border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500/20"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -131,21 +165,22 @@ export default function EmployeesPage() {
         </div>
 
         {/* Employee Table */}
-        <Card className="border-0 shadow-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl rounded-2xl overflow-hidden">
-          <CardHeader className="border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-slate-50/80 to-blue-50/60 dark:from-slate-900/80 dark:to-slate-800/80">
+        {/* PATCHED: Card and CardHeader solid backgrounds */}
+        <Card className="border-0 shadow-2xl bg-white dark:bg-slate-900 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <CardHeader className="border-b border-slate-200/50 dark:border-slate-800">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <CardTitle className="text-xl font-semibold text-slate-900 dark:bg-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                   <User className="h-4 w-4 text-white" />
                 </div>
                 Employee Directory
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="border-slate-200/60 dark:border-slate-700/60 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-all duration-200">
+                <Button variant="outline" size="sm" className="border-slate-200/60 dark:border-slate-800 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-all duration-200">
                   <Filter className="mr-2 h-4 w-4" />
                   Filter
                 </Button>
-                <Button variant="outline" size="sm" className="border-slate-200/60 dark:border-slate-700/60 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-all duration-200">
+                <Button variant="outline" size="sm" className="border-slate-200/60 dark:border-slate-800 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-all duration-200">
                   <Download className="mr-2 h-4 w-4" />
                   Export
                 </Button>
@@ -156,7 +191,7 @@ export default function EmployeesPage() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-b border-slate-200/30 dark:border-slate-700/30 bg-gradient-to-r from-slate-50/60 to-blue-50/40 dark:from-slate-900/60 dark:to-slate-800/60">
+                  <TableRow className="border-b border-slate-200/30 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
                     <TableHead className="font-semibold text-slate-700 dark:text-slate-300 py-6 px-6 text-sm tracking-wide">
                       Employee
                     </TableHead>
@@ -175,16 +210,17 @@ export default function EmployeesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(filteredEmployees || []).map((employee, index) => (
+                  {(currentEmployees || []).map((employee, index) => (
+                    // PATCHED: Table row hover effect to solid color
                     <TableRow
                       key={employee.id || index}
-                      className="border-b border-slate-100/60 dark:border-slate-800/60 hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-indigo-50/20 dark:hover:from-slate-800/40 dark:hover:to-slate-700/30 transition-all duration-300 group"
+                      className="border-b border-slate-100 dark:border-slate-100 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors group"
                     >
                       <TableCell className="py-6 px-6">
                         <div className="flex items-center gap-4">
                           <div className="relative">
-                            <Avatar className="h-12 w-12 border-2 border-white dark:border-slate-700 shadow-lg ring-2 ring-blue-100 dark:ring-slate-600 transition-all duration-300">
-                              <AvatarImage src={employee.avatar} alt={employee.employee_name} />
+                            <Avatar className="h-12 w-12 border-2 border-white dark:border-slate-100 shadow-lg ring-2 ring-blue-100 dark:ring-slate-600 transition-all duration-300">
+                              <AvatarImage src={employee.avatar} alt={employee.employee_name || ""} />
                               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold text-sm">
                                 {(() => {
                                   const name = employee.employee_name || "";
@@ -196,7 +232,6 @@ export default function EmployeesPage() {
                                 })()}
                               </AvatarFallback>
                             </Avatar>
-
                           </div>
                           <div className="space-y-1">
                             <div className="font-semibold text-slate-900 dark:text-slate-100 transition-colors duration-200">
@@ -213,7 +248,6 @@ export default function EmployeesPage() {
                       </TableCell>
                       <TableCell className="py-6 px-4">
                         <div className="flex min-w-[160px] items-center gap-2">
-
                           <span className="text-xs font-medium text-slate-900 dark:text-slate-100 transition-colors duration-200">
                             {employee.position}
                           </span>
@@ -225,7 +259,7 @@ export default function EmployeesPage() {
                             <Phone className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                           </div>
                           <span className="text-sm font-medium text-slate-900 dark:text-slate-400 transition-colors duration-200">
-                            {employee.contact_number || employee.contact_no}
+                            {employee.contact_number || employee.contact_no || "--"}
                           </span>
                         </div>
                       </TableCell>
@@ -251,7 +285,8 @@ export default function EmployeesPage() {
                               <MoreHorizontal className="h-4 w-4 text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border-slate-200/60 dark:border-slate-700/60 shadow-xl rounded-xl">
+                          {/* PATCHED: DropdownMenuContent backgrounds */}
+                          <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-900 border-slate-200/60 dark:border-slate-800 shadow-xl rounded-xl">
                             <DropdownMenuItem onClick={() => handleView(employee)} className="hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg m-1">
                               View Details
                             </DropdownMenuItem>
@@ -290,13 +325,61 @@ export default function EmployeesPage() {
                 </Button>
               </div>
             )}
+
+            {filteredEmployees.length > 0 && (
+              <div className="py-4 px-6 border-t border-slate-200/60 dark:border-slate-700/60">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-slate-600 dark:text-slate-400">
+                    Showing {startIndex + 1} to {Math.min(endIndex, filteredEmployees.length)} of {filteredEmployees.length} records
+                  </div>
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+                          className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page =>
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        )
+                        .map((page) => (
+                          <PaginationItem key={page}>
+                            <Button
+                              variant={currentPage === page ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-8 h-8 ${currentPage === page
+                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                            >
+                              {page}
+                            </Button>
+                          </PaginationItem>
+                        ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
+                          className={`${currentPage === totalPages ? 'pointer-events-none opacity-50' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Enhanced Modal */}
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          {/* PATCHED: DialogContent backgrounds */}
           <DialogContent
-            className="max-w-[80vw] max-h-[90vh] w-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-slate-200/60 dark:border-slate-700/60 shadow-2xl rounded-2xl overflow-y-auto"
+            className="max-w-3xl max-h-[90vh] w-full bg-white dark:bg-slate-900 border-slate-200/60 dark:border-slate-800 shadow-2xl rounded-2xl overflow-y-auto"
           >
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-blue-700 dark:from-slate-100 dark:to-blue-300 bg-clip-text text-transparent">
@@ -310,9 +393,10 @@ export default function EmployeesPage() {
               <div className="p-8 text-center">Loading...</div>
             ) : userDetails ? (
               <div className="space-y-6">
-                <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-slate-50/80 to-blue-50/60 dark:from-slate-800/80 dark:to-slate-700/60 rounded-xl border border-slate-200/40 dark:border-slate-700/40">
+                {/* PATCHED: Modal header background */}
+                <div className="flex items-center gap-4 p-6 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200/40 dark:border-slate-700/40">
                   <Avatar className="h-20 w-20 border-4 border-white dark:border-slate-700 shadow-xl ring-4 ring-blue-100 dark:ring-slate-600">
-                    <AvatarImage src={userDetails.employee_image} alt={userDetails.user_full_name} />
+                    <AvatarImage src={userDetails.employee_image} alt={userDetails.user_full_name || ""} />
                     <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-semibold text-2xl">
                       {(() => {
                         const name = userDetails.user_full_name || "";
@@ -347,8 +431,9 @@ export default function EmployeesPage() {
                       .filter(([key]) =>
                         !["user_id", "employee_id", "org_id", "employee_image", "user_full_name", "designation", "emp_organization"].includes(key)
                       )
+                      // PATCHED: Details grid items background
                       .map(([key, value]) => (
-                        <div key={key} className="p-4 bg-gradient-to-r from-white to-blue-50/50 dark:from-slate-900 dark:to-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all duration-200">
+                        <div key={key} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all duration-200">
                           <p className="text-sm font-medium text-slate-600 dark:text-slate-400 capitalize">
                             {key.replace(/_/g, " ")}
                           </p>

@@ -112,8 +112,6 @@ export default function DashboardPage() {
             value={stats.presentCount}
             description={`${stats.attendanceRate.toFixed(0)}% of total employees`}
             icon="users"
-            trend="up"
-            trendValue={`${stats.attendanceRate.toFixed(0)}%`}
             status={EmployeeStatus.PRESENT}
           />
         </Link>
