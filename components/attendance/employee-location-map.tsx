@@ -67,9 +67,9 @@ export function EmployeeLocationMap({ location, employeeName }: EmployeeLocation
       mapInstanceRef.current = map; // Store the instance in the ref
 
       // Add the tile layer (the base map image)
-      L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
-        maxZoom: 20,
-        attribution: '© <a href="https://stadiamaps.com/">Stadia Maps</a>, © <a href="https://openmaptiles.org/">OpenMapTiles</a> © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, // The standard max zoom for OSM's main tile server
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
       // Add markers, popups, etc.
