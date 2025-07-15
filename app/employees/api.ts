@@ -1,6 +1,6 @@
 import { getCookie } from "cookies-next";
 
-export const getEmployeeList = async (user_id: number) => {
+export const getEmployeeList = async (user_id: string) => {
     const token = getCookie("token") || "";
 
     const res = await fetch("https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getEmployeeList", {

@@ -56,10 +56,10 @@ export default function EmployeesPage() {
       try {
         const admin_emp_id = (getCookie("userId") as string) || "";
         const decoded = decodeURIComponent(admin_emp_id);
-        const userIdNum = Number(decoded);
-        const response = await getEmployeeList(userIdNum);
-        setEmployees(response.data);
-        setFilteredEmployees(response.data);
+        const response = await getEmployeeList(decoded);
+        const data = response.data ?? [];
+        setEmployees(data);
+        setFilteredEmployees(data);
       } catch (error) {
         console.error("Error fetching employees:", error);
       }
