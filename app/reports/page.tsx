@@ -35,7 +35,7 @@ export default function ReportsPage() {
       // Replace with your actual API endpoint for attendance report
       const apiUrl = process.env.NEXT_PUBLIC_API_URL + "attendance/download-report";
       const token = ""; // Optionally get token from cookies if needed
-        console.log("fasdfasrf")
+        console.log("fassrf")
       const res = await fetch(apiUrl, {
         method: "GET",
         headers: {
