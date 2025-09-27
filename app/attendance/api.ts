@@ -2,7 +2,6 @@ import { getCookie } from "cookies-next";
 
 const token = getCookie("token") || "";
 
-
 export async function getAdminAttendanceInfo(admin_emp_id: string, from_date: string, to_date: string) {
     const res = await fetch("https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAdminAttendanceInfo", {
       method: "POST",

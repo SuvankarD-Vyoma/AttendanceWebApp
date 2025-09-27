@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import moment from "moment";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -235,18 +236,28 @@ export default function AttendancePage() {
 
   const handleExportExcel = () => {
     // Transform data to exclude emp_id and rename headers
-    const exportData = sortedData.map(row => ({
-      'Employee Name': row.employee_name || 'Unknown Employee',
-      'Employee Code': row.employee_code || '',
-      'Designation': row.designation || '',
-      'Contact Number': row.employee_contact_no || '',
-      'Email': row.employee_email || '',
-      'Attendance Date': row.attendance_date || '',
-      'Check In Time': row.checkin_time || '',
-      'Check Out Time': row.checkout_time || '',
-      'Duration': row.duration || '',
-      'Status': row.attendance_status || ''
-    }));
+    const exportData = sortedData.map(row => {
+      // Format date as "Day, DD-MM-YYYY"
+      let dayAndDate = '';
+      if (row.attendance_date) {
+        const dateObj = new Date(row.attendance_date.split('-').reverse().join('-'));
+        const day = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+        dayAndDate = `${day}, ${row.attendance_date}`;
+      }
+
+      return {
+        'Employee Name': row.employee_name || 'Unknown Employee',
+        'Day and Date': moment(row.attendance_date).format("dddd, DD-MM-YYYY"),
+        "Day & Date": (
+          <>
+            {moment(row.attendance_date).format("dddd, DD-MM-YYYY")} <br />
+            Status: {row.attendance_status || ""} <br />
+            Entry: {row.checkin_time || ""} <br />
+            Exit: {row.checkout_time || ""}
+          </>
+        )
+      };
+    });
 
     // Convert data to worksheet
     const worksheet = XLSX.utils.json_to_sheet(exportData);
