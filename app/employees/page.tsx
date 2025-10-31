@@ -9,57 +9,163 @@ import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserPlus, Search, Mail, Phone, Calendar, User, Building2, Filter, Download, MoreHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { getEmployeeList, getUserDetailsByUserID } from "./api";
-import { useState, useEffect } from "react";
+import { getUserDetailsByUserID } from "./api";
+import { useEffect, useState } from "react";
 import { getCookie } from "cookies-next";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import CryptoJS from 'crypto-js';
 
-// Type definitions for better type safety
-type Employee = {
-  id?: string | number;
-  user_id?: string | number;
-  employee_name?: string;
-  avatar?: string;
-  email_id?: string;
-  department_name?: string;
-  position?: string;
-  designation_name?: string;
-  contact_number?: string;
-  contact_no?: string;
-  status?: string;
-};
+const decryptData = (encryptedText: string): string => {
+  // If empty, return early
+  if (!encryptedText || typeof encryptedText !== "string") return encryptedText;
 
-type UserDetails = {
-  [key: string]: any;
-  employee_image?: string;
-  user_full_name?: string;
-  designation?: string;
-  emp_organization?: string;
+  // Replace with your actual secret key from backend (hex or utf8 string depending on backend)
+  const SECRET_KEY_HEX = "710f5a3bbcb3c168409c47774ba11897be76f08e997085377803271c4d42e961";
+  // fallback utf8 key (in case backend actually used a utf8 passphrase/key)
+  const SECRET_KEY_UTF8 = "710f5a3bbcb3c168409c47774ba11897be76f08e997085377803271c4d42e961";
+
+  // Helper to attempt decryption and return null on failure
+  const tryDecrypt = (decryptFn: () => string | null): string | null => {
+    try {
+      const out = decryptFn();
+      // If out is an empty string, likely wrong key/iv -> treat as failure
+      if (!out) return null;
+      return out;
+    } catch (err) {
+      console.warn("decrypt attempt failed:", err);
+      return null;
+    }
+  };
+
+  // 1) If the ciphertext looks like OpenSSL salted format (starts with Salted__), try passphrase-style decrypt
+  if (encryptedText.startsWith("U2FsdA") || encryptedText.startsWith("Salted__")) {
+    const attempt = tryDecrypt(() => {
+      // This uses CryptoJS password-based decrypt which is compatible with CryptoJS.AES.encrypt(plain, passphrase)
+      const bytes = CryptoJS.AES.decrypt(encryptedText, SECRET_KEY_UTF8);
+      return bytes.toString(CryptoJS.enc.Utf8) || null;
+    });
+    if (attempt) return attempt;
+  }
+
+  // 2) Try base64 ciphertext with HEX key and zero IV, AES-CBC + PKCS7 (common pattern)
+  const attemptHexKey = tryDecrypt(() => {
+    const key = CryptoJS.enc.Hex.parse(SECRET_KEY_HEX);
+    // If you have an IV from backend use it here. We'll try zero IV as fallback:
+    const iv = CryptoJS.enc.Hex.parse("00000000000000000000000000000000");
+    const cipherParams = { ciphertext: CryptoJS.enc.Base64.parse(encryptedText) };
+    const decrypted = CryptoJS.AES.decrypt(cipherParams as any, key as any, {
+      iv,
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7
+    });
+    return decrypted.toString(CryptoJS.enc.Utf8) || null;
+  });
+  if (attemptHexKey) return attemptHexKey;
+
+  // 3) Try base64 ciphertext with UTF-8 key and zero IV (if backend used raw utf8 key)
+  const attemptUtf8Key = tryDecrypt(() => {
+    const key = CryptoJS.enc.Utf8.parse(SECRET_KEY_UTF8);
+    const iv = CryptoJS.enc.Hex.parse("00000000000000000000000000000000");
+    const cipherParams = { ciphertext: CryptoJS.enc.Base64.parse(encryptedText) };
+    const decrypted = CryptoJS.AES.decrypt(cipherParams as any, key as any, {
+      iv,
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7
+    });
+    return decrypted.toString(CryptoJS.enc.Utf8) || null;
+  });
+  if (attemptUtf8Key) return attemptUtf8Key;
+
+  // 4) Last resort: try passphrase-style (without checking "Salted__") — sometimes encryptedText is base64 OpenSSL style
+  const attemptPassphraseGeneral = tryDecrypt(() => {
+    const bytes = CryptoJS.AES.decrypt(encryptedText, SECRET_KEY_UTF8);
+    return bytes.toString(CryptoJS.enc.Utf8) || null;
+  });
+  if (attemptPassphraseGeneral) return attemptPassphraseGeneral;
+
+  // Nothing worked — log and return original encrypted text so UI doesn't break.
+  console.warn("Decryption failed for value (returning encrypted text):", encryptedText);
+  return encryptedText;
 };
 
 export default function EmployeesPage() {
   const router = useRouter();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [filteredEmployees, setFilteredEmployees] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
+  const [userDetails, setUserDetails] = useState<any | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // You can adjust this as needed
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const admin_emp_id = (getCookie("userId") as string) || "";
-        const decoded = decodeURIComponent(admin_emp_id);
-        const response = await getEmployeeList(decoded);
-        const data = response.data ?? [];
+        const admin_id = getCookie("admin_Id") as string | undefined;
+        if (!admin_id) {
+          throw new Error("admin_id not found.");
+        }
+        let bearerToken = "";
+        const maybeToken = getCookie("token") as string | undefined;
+        if (maybeToken && typeof maybeToken === "string") {
+          bearerToken = maybeToken;
+        }
+        const myHeaders = new Headers();
+        myHeaders.append("accept", "*/*");
+        myHeaders.append("Content-Type", "application/json");
+        myHeaders.append(
+          "Authorization",
+          bearerToken ? `Bearer ${bearerToken}` : ""
+        );
+        const raw = JSON.stringify({
+          admin_id: admin_id,
+        });
+        const requestOptions: RequestInit = {
+          method: "POST",
+          headers: myHeaders,
+          body: raw,
+          redirect: "follow"
+        };
+        const response = await fetch(
+          "http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getEmployeeDetailsList",
+          requestOptions
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const resultText = await response.text();
+        let data: any[] = [];
+        try {
+          const parsed = JSON.parse(resultText);
+          if (parsed.status === 0 && parsed.data && Array.isArray(parsed.data)) {
+            data = parsed.data.map((employee: any) => ({
+              ...employee,
+              user_id_decrypted: decryptData(employee.user_id),
+              employee_id_decrypted: decryptData(employee.employee_id),
+              user_id: employee.user_id,
+              employee_id: employee.employee_id,
+            }));
+          } else if (Array.isArray(parsed)) {
+            data = parsed.map((employee: any) => ({
+              ...employee,
+              user_id_decrypted: decryptData(employee.user_id),
+              employee_id_decrypted: decryptData(employee.employee_id),
+              user_id: employee.user_id,
+              employee_id: employee.employee_id,
+            }));
+          }
+        } catch (err) {
+          console.error("Error parsing response:", err);
+          data = [];
+        }
+        console.log("Decrypted employee data:", data);
         setEmployees(data);
         setFilteredEmployees(data);
+
       } catch (error) {
         console.error("Error fetching employees:", error);
       }
@@ -73,8 +179,8 @@ export default function EmployeesPage() {
       (employee.employee_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
       (employee.email_id?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
       (employee.department_name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-      (employee.position?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-      (employee.designation_name?.toLowerCase() || "").includes(searchQuery.toLowerCase())
+      (employee.employee_designation?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (employee.employee_code?.toLowerCase() || "").includes(searchQuery.toLowerCase())
     );
     setFilteredEmployees(filtered);
   }, [searchQuery, employees]);
@@ -83,7 +189,7 @@ export default function EmployeesPage() {
     router.push('/employees/add-employee');
   };
 
-  const handleView = async (employee: Employee) => {
+  const handleView = async (employee: any) => {
     setModalOpen(true);
     setSelectedEmployee(employee);
     setLoadingDetails(true);
@@ -103,7 +209,6 @@ export default function EmployeesPage() {
   const endIndex = startIndex + itemsPerPage;
   const currentEmployees = filteredEmployees.slice(startIndex, endIndex);
 
-  // PATCHED getStatusColor function for better dark mode contrast
   const getStatusColor = (status: string = "") => {
     switch (status.toLowerCase()) {
       case 'active':
@@ -136,7 +241,6 @@ export default function EmployeesPage() {
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0 gap-4">
           <div className="space-y-2">
-            {/* PATCHED: Gradient text for h1 */}
             <h1 className="text-4xl font-bold tracking-tight text-blue-950 dark:text-white bg-clip-text text-transparent">
               Employee Directory
             </h1>
@@ -148,7 +252,6 @@ export default function EmployeesPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              {/* PATCHED: Solid input backgrounds */}
               <Input
                 type="search"
                 placeholder="Search employees, departments, positions..."
@@ -165,7 +268,6 @@ export default function EmployeesPage() {
         </div>
 
         {/* Employee Table */}
-        {/* PATCHED: Card and CardHeader solid backgrounds */}
         <Card className="border-0 shadow-2xl bg-white dark:bg-slate-900 dark:border-slate-800 rounded-2xl overflow-hidden">
           <CardHeader className="border-b border-slate-200/50 dark:border-slate-800">
             <div className="flex items-center justify-between">
@@ -196,7 +298,13 @@ export default function EmployeesPage() {
                       Employee
                     </TableHead>
                     <TableHead className="font-semibold text-slate-700 dark:text-slate-300 py-6 px-4 text-sm tracking-wide">
-                      Position
+                      Designation
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700 dark:text-slate-300 py-6 px-4 text-sm tracking-wide">
+                      Employee Code
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700 dark:text-slate-300 py-6 px-4 text-sm tracking-wide">
+                      Joining Date
                     </TableHead>
                     <TableHead className="font-semibold text-slate-700 dark:text-slate-300 py-6 px-4 text-sm tracking-wide">
                       Contact
@@ -211,7 +319,6 @@ export default function EmployeesPage() {
                 </TableHeader>
                 <TableBody>
                   {(currentEmployees || []).map((employee, index) => (
-                    // PATCHED: Table row hover effect to solid color
                     <TableRow
                       key={employee.id || index}
                       className="border-b border-slate-100 dark:border-slate-100 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors group"
@@ -247,11 +354,19 @@ export default function EmployeesPage() {
                         </div>
                       </TableCell>
                       <TableCell className="py-6 px-4">
-                        <div className="flex min-w-[160px] items-center gap-2">
-                          <span className="text-xs font-medium text-slate-900 dark:text-slate-100 transition-colors duration-200">
-                            {employee.position}
-                          </span>
-                        </div>
+                        <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {employee.employee_designation || "--"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-6 px-4">
+                        <span className="text-sm font-semibold text-black-700 dark:text-blue-400">
+                          {employee.employee_code || "--"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-6 px-4">
+                        <span className="text-sm text-slate-900 dark:text-slate-100">
+                          {employee.joining_date ? formatDate(employee.joining_date) : "--"}
+                        </span>
                       </TableCell>
                       <TableCell className="py-6 px-4">
                         <div className="flex items-center gap-2">
@@ -285,7 +400,6 @@ export default function EmployeesPage() {
                               <MoreHorizontal className="h-4 w-4 text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                             </Button>
                           </DropdownMenuTrigger>
-                          {/* PATCHED: DropdownMenuContent backgrounds */}
                           <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-900 border-slate-200/60 dark:border-slate-800 shadow-xl rounded-xl">
                             <DropdownMenuItem onClick={() => handleView(employee)} className="hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg m-1">
                               View Details
@@ -377,7 +491,6 @@ export default function EmployeesPage() {
 
         {/* Enhanced Modal */}
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-          {/* PATCHED: DialogContent backgrounds */}
           <DialogContent
             className="max-w-3xl max-h-[90vh] w-full bg-white dark:bg-slate-900 border-slate-200/60 dark:border-slate-800 shadow-2xl rounded-2xl overflow-y-auto"
           >
@@ -393,7 +506,6 @@ export default function EmployeesPage() {
               <div className="p-8 text-center">Loading...</div>
             ) : userDetails ? (
               <div className="space-y-6">
-                {/* PATCHED: Modal header background */}
                 <div className="flex items-center gap-4 p-6 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200/40 dark:border-slate-700/40">
                   <Avatar className="h-20 w-20 border-4 border-white dark:border-slate-700 shadow-xl ring-4 ring-blue-100 dark:ring-slate-600">
                     <AvatarImage src={userDetails.employee_image} alt={userDetails.user_full_name || ""} />
@@ -431,7 +543,6 @@ export default function EmployeesPage() {
                       .filter(([key]) =>
                         !["user_id", "employee_id", "org_id", "employee_image", "user_full_name", "designation", "emp_organization"].includes(key)
                       )
-                      // PATCHED: Details grid items background
                       .map(([key, value]) => (
                         <div key={key} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all duration-200">
                           <p className="text-sm font-medium text-slate-600 dark:text-slate-400 capitalize">

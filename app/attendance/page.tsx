@@ -15,15 +15,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import moment from "moment";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
+// import {
+//   DropdownMenu,
+//   DropdownMenuContent,
+//   DropdownMenuItem,
+//   DropdownMenuTrigger
+// } from "@/components/ui/dropdown-menu";
 
 // Custom Components
-import AttendanceFilters from "@/components/attendance/attendance-filters";
+// import AttendanceFilters from "@/components/attendance/attendance-filters";
 import { EmployeeLocationMap } from "@/components/attendance/employee-location-map";
 import * as XLSX from "xlsx";
 
@@ -48,8 +48,6 @@ interface AttendanceRecord {
   duration: string | null;
   attendance_status: string | null;
 }
-
-
 
 export default function AttendancePage() {
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
@@ -92,8 +90,8 @@ export default function AttendancePage() {
         setLoading(true);
         setError(null);
 
-        const admin_emp_id = (getCookie("userId") as string) || "";
-        const decoded = decodeURIComponent(admin_emp_id);
+        const admin_Id = (getCookie("admin_Id") as string) || "";
+        const decoded = decodeURIComponent(admin_Id);
 
         const response = await getAdminAttendanceInfo(
           decoded,
@@ -163,7 +161,6 @@ export default function AttendancePage() {
       aValue = statusOrder[a.attendance_status as keyof typeof statusOrder] || 0;
       bValue = statusOrder[b.attendance_status as keyof typeof statusOrder] || 0;
     }
-
     if (sortDirection === 'asc') {
       return aValue > bValue ? 1 : -1;
     } else {

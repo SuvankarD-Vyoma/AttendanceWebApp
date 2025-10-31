@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Eye, EyeOff, Globe } from "lucide-react"
 import { setCookie } from "cookies-next"
-
+import logo from '@/assets/logo.png';
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -96,7 +96,7 @@ export default function LoginPage() {
       if (authData.data && (authData.data.userrole === "HR" || authData.data.userrole === "ADMIN")) {
         // Store user data in cookies
         setCookie("token", token, { maxAge: 60 * 60 * 24 }) // 1 day
-        setCookie("userId", authData.data.userid, { maxAge: 60 * 60 * 24 })
+        setCookie("admin_Id", authData.data.admin_id, { maxAge: 60 * 60 * 24 })
         setCookie("username", authData.data.username, { maxAge: 60 * 60 * 24 })
         setCookie("userRole", authData.data.userrole, { maxAge: 60 * 60 * 24 })
         setCookie("userFullName", authData.data.userfullname, { maxAge: 60 * 60 * 24 })
@@ -127,7 +127,7 @@ export default function LoginPage() {
       <div className="grid w-full lg:grid-cols-2 gap-8 max-w-5xl">
         <div className="hidden lg:flex flex-col justify-center p-8">
           <div className="flex items-center mb-8">
-            <Globe className="h-10 w-10 text-primary mr-2" />
+            <Image src={logo} alt="logo" width={40} height={40} className="rounded-full border mr-4" />
             <h1 className="text-3xl font-bold">Vyoma Innovus Global</h1>
           </div>
           <h2 className="text-4xl font-bold mb-4">Attendance Management Dashboard</h2>
@@ -159,8 +159,8 @@ export default function LoginPage() {
           <Card className="w-full max-w-md">
             <CardHeader className="space-y-1">
               <div className="flex items-center lg:hidden mb-2">
-                <Globe className="h-6 w-6 text-primary mr-2" />
-                <span className="font-bold">Vyoma Innovus Global</span>
+                <Image src={logo} alt="logo" width={20} height={20} className="rounded-full border-2 border-primary mr-2" />
+                <span className="text-2xl font-bold">Vyoma Innovus Global</span>
               </div>
               <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
               <CardDescription>Enter your credentials to access the dashboard</CardDescription>

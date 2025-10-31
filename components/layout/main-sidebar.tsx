@@ -6,15 +6,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import Image from 'next/image';
+import logo from '@/assets/logo.png';
 import { deleteCookie } from "cookies-next";
 import {
   ChevronLeft,
   LayoutDashboard,
   Users,
   Calendar,
-  Map,
   FileText,
-  Settings,
   Clock,
   LogOut
 } from "lucide-react";
@@ -96,9 +96,9 @@ export default function MainSidebar({ isOpen, onToggle }: MainSidebarProps) {
     { icon: Users, label: "Employees", href: "/employees" },
     { icon: Clock, label: "Attendance", href: "/attendance" },
     { icon: Calendar, label: "Leave Management", href: "/leave" },
-    { icon: Map, label: "Location Tracking", href: "/location" },
+    // { icon: Map, label: "Location Tracking", href: "/location" },
     { icon: FileText, label: "Reports", href: "/reports" },
-    { icon: Settings, label: "Settings", href: "/settings" },
+    // { icon: Settings, label: "Settings", href: "/settings" },
   ];
 
   return (
@@ -114,8 +114,14 @@ export default function MainSidebar({ isOpen, onToggle }: MainSidebarProps) {
             <div className="flex items-center">
               <Link href="/dashboard" className="flex items-center">
                 {isCollapsed ? (
-                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-black font-semibold text-lg">
-                    VIG
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden border border-gray-200">
+                    <Image
+                      src={logo}
+                      alt="logo"
+                      width={32}
+                      height={32}
+                      className="object-cover"
+                    />
                   </div>
                 ) : (
                   <h1 className="text-sm font-semibold ml-2">

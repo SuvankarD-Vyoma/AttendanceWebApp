@@ -1,7 +1,25 @@
 import { getCookie } from "cookies-next";
 
-export const getEmployeeList = async (user_id: string) => {
+// Example decrypt function for demonstration purposes.
+// Replace this implementation with your actual decryption logic as needed.
+function decryptUserId(encryptedUserId: string): string {
+    // For illustration, let's assume a simple base64 decode.
+    // You should use your REAL decryption function here.
+    try {
+        return Buffer.from(encryptedUserId, 'base64').toString('utf8');
+    } catch {
+        // fallback if not base64 or decryption fails
+        return encryptedUserId;
+    }
+}
+
+export const getEmployeeList = async (encryptedUserId: string) => {
     const token = getCookie("token") || "";
+
+    // Decrypt the encrypted user ID
+    const decryptedUserId = decryptUserId(encryptedUserId);
+    // Show the decrypted value (console or return — here, print it)
+    console.log("Decrypted User ID:", decryptedUserId);
 
     const res = await fetch("https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getEmployeeList", {
         method: "POST",
@@ -10,7 +28,7 @@ export const getEmployeeList = async (user_id: string) => {
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ user_id: user_id }),
+        body: JSON.stringify({ user_id: decryptedUserId }),
     });
 
     if (!res.ok) {

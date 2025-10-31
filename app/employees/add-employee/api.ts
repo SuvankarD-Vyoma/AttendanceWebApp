@@ -19,7 +19,6 @@ export async function saveEmployee(payload: any) {
   return res.json();
 }
 
-
 export async function getAllBloodGroup() {
   const token = getCookie("token") || "";
   const res = await fetch("https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAllBloodGroup", {
@@ -36,7 +35,6 @@ export async function getAllBloodGroup() {
   }
   return res.json();
 }
-
 
 export const getAllGender = async ()=>{
   const token = getCookie("token") || "";

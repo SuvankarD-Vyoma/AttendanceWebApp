@@ -2,7 +2,7 @@ import { getCookie } from "cookies-next";
 
 const token = getCookie("token") || "";
 
-export async function getLeaveRequestsByAdmin(userId: string) {
+export async function getLeaveRequestsByAdmin(admin_id: string) {
     try {
         const response = await fetch('http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getLeaveRequestsByAdmin', {
             method: 'POST',
@@ -12,7 +12,7 @@ export async function getLeaveRequestsByAdmin(userId: string) {
                 'Authorization': `Bearer ${token}` // Token should be managed securely
             },
             body: JSON.stringify({
-                user_id: userId
+                admin_id
             })
         });
 
