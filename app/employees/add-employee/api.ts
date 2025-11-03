@@ -12,7 +12,6 @@ export async function saveEmployee(payload: any) {
     },
     body: JSON.stringify(payload),
   });
-
   if (!res.ok) {
     throw new Error("Failed to add employee");
   }
@@ -27,9 +26,8 @@ export async function getAllBloodGroup() {
       "accept": "*/*",
       "Authorization": `Bearer ${token}`,
     },
-    body: "", // POST with empty body
+    body: "",
   });
-
   if (!res.ok) {
     throw new Error("Failed to fetch blood groups");
   }
@@ -46,7 +44,6 @@ export const getAllGender = async ()=>{
     },
     body: "",
   });
-
   if (!res.ok) {
     throw new Error("Failed to fetch genders");
   }

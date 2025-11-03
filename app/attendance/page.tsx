@@ -382,8 +382,6 @@ export default function AttendancePage() {
                   className="w-full"
                 />
               </div>
-
-
             </div>
           </CardContent>
         </Card>
@@ -415,6 +413,9 @@ export default function AttendancePage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100/50 dark:from-gray-900/50 dark:to-gray-800/50 border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 h-12">
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4 w-10 text-center">
+                        #
+                      </TableHead>
                       <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">
                         <Button
                           variant="ghost"
@@ -473,7 +474,7 @@ export default function AttendancePage() {
                   <TableBody>
                     {currentItems.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center text-gray-500 dark:text-gray-400">
+                        <TableCell colSpan={7} className="h-24 text-center text-gray-500 dark:text-gray-400">
                           <div className="flex flex-col items-center justify-center space-y-2">
                             <User className="h-12 w-12 text-gray-300 dark:text-gray-600" />
                             <span className="text-lg font-medium">No attendance records found</span>
@@ -486,12 +487,17 @@ export default function AttendancePage() {
 
                         {currentItems.map((row, index) => {
                           const location = formatLocation(row.checkin_latitude, row.checkin_longitude);
+                          // Calculate the row number across all pagination
+                          const rowNumber = startIndex + index + 1;
 
                           return (
                             <TableRow
                               key={`${row.emp_id}-${index}`}
                               className="border-b border-gray-100 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-900/30 transition-all duration-200 h-[100px]"
                             >
+                              <TableCell className="py-3 px-4 text-center font-semibold text-gray-800 dark:text-gray-200">
+                                {rowNumber}
+                              </TableCell>
                               <TableCell className="py-3 px-4 min-w-[120px] transition-all duration-200">
                                 <div className="flex items-center gap-3">
                                   <Avatar className="h-10 w-10 border-2 border-white shadow-md ring-2 ring-gray-100 dark:ring-gray-800 flex-shrink-0">

@@ -294,6 +294,9 @@ export default function EmployeesPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-b border-slate-200/30 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                    <TableHead className="font-semibold text-slate-700 dark:text-slate-300 py-6 px-4 text-sm tracking-wide text-center w-10">
+                      #
+                    </TableHead>
                     <TableHead className="font-semibold text-slate-700 dark:text-slate-300 py-6 px-6 text-sm tracking-wide">
                       Employee
                     </TableHead>
@@ -323,6 +326,10 @@ export default function EmployeesPage() {
                       key={employee.id || index}
                       className="border-b border-slate-100 dark:border-slate-100 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors group"
                     >
+                      {/* Number counting cell */}
+                      <TableCell className="py-6 px-4 text-center w-10 font-semibold text-slate-800 dark:text-slate-200">
+                        {(startIndex || 0) + index + 1}
+                      </TableCell>
                       <TableCell className="py-6 px-6">
                         <div className="flex items-center gap-4">
                           <div className="relative">
