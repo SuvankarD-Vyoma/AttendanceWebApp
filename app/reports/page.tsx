@@ -1,93 +1,144 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { getCookie } from "cookies-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, Calendar, Users, Clock, TrendingUp, Search } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
+import {
+  Download,
+  Calendar,
+  Users,
+  Clock,
+  TrendingUp,
+  Search,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
+import { getAttendenceSummaryDetails } from "@/app/reports/api";
 
 export default function AttendanceAnalytics() {
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState(
+    new Date().toISOString().slice(0, 7)
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [attendanceSummary, setAttendanceSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data - Replace with actual API data
-  const monthlyOverview = {
-    totalWorkingDays: 22,
-    present: 450,
-    late: 45,
-    absent: 15,
-    totalEmployees: 25
-  };
+  const admin_Id = getCookie("admin_Id");
+  const month_number = parseInt(selectedMonth.split("-")[1]);
+  const year_number = parseInt(selectedMonth.split("-")[0]);
 
-  const monthlyChartData = [
-    { status: "Present", count: 450, percentage: 88.2, color: "#10b981" },
-    { status: "Late", count: 45, percentage: 8.8, color: "#f59e0b" },
-    { status: "Absent", count: 15, percentage: 3.0, color: "#ef4444" }
-  ];
+  // ✅ Fetch attendance summary data
+  useEffect(() => {
+    async function fetchSummary() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await getAttendenceSummaryDetails(
+          admin_Id as string,
+          month_number,
+          year_number
+        );
+        if (res?.status === 0) {
+          setAttendanceSummary(res.data);
+        } else {
+          setError(res?.message || "Error fetching attendance summary");
+        }
+      } catch (err) {
+        console.error("Attendance summary fetch error:", err);
+        setError("Error fetching attendance summary");
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  const employeeAttendance = [
-    { id: 1, name: "John Doe", empId: "EMP001", present: 19, late: 2, absent: 1, presentPercent: 86.4 },
-    { id: 2, name: "Jane Smith", empId: "EMP002", present: 21, late: 1, absent: 0, presentPercent: 95.5 },
-    { id: 3, name: "Mike Johnson", empId: "EMP003", present: 18, late: 3, absent: 1, presentPercent: 81.8 },
-    { id: 4, name: "Sarah Williams", empId: "EMP004", present: 22, late: 0, absent: 0, presentPercent: 100.0 },
-    { id: 5, name: "Robert Brown", empId: "EMP005", present: 20, late: 1, absent: 1, presentPercent: 90.9 },
-    { id: 6, name: "Emily Davis", empId: "EMP006", present: 19, late: 2, absent: 1, presentPercent: 86.4 },
-    { id: 7, name: "David Wilson", empId: "EMP007", present: 21, late: 1, absent: 0, presentPercent: 95.5 },
-    { id: 8, name: "Lisa Anderson", empId: "EMP008", present: 17, late: 3, absent: 2, presentPercent: 77.3 },
-  ];
+    if (admin_Id && month_number && year_number) fetchSummary();
+  }, [admin_Id, month_number, year_number]);
 
-  // Removed selectedEmployee and dropdown related code
+  // 🧮 Derived data for UI
+  const monthlyOverview = useMemo(() => {
+    if (!attendanceSummary) return {};
+    const summary = attendanceSummary.attendence_summary;
+    return {
+      totalEmployees: summary?.total_employee || 0,
+      present: summary?.present_employee || 0,
+      late: summary?.late_employee || 0,
+      absent: summary?.absent_employee || 0,
+      attendanceRate: summary?.attendance_rate || 0,
+    };
+  }, [attendanceSummary]);
+
+  const monthlyChartData = useMemo(() => {
+    if (!attendanceSummary) return [];
+    const summary = attendanceSummary.attendence_summary;
+    return [
+      {
+        status: "Present",
+        count: summary?.present_employee || 0,
+        percentage: summary?.attendance_rate || 0,
+        color: "#22c55e",
+      },
+      {
+        status: "Late",
+        count: summary?.late_employee || 0,
+        percentage: summary?.late_rate || 0,
+        color: "#f59e0b",
+      },
+      {
+        status: "Absent",
+        count: summary?.absent_employee || 0,
+        percentage: summary?.absent_rate || 0,
+        color: "#ef4444",
+      },
+    ];
+  }, [attendanceSummary]);
+
+  const employees = useMemo(() => {
+    return attendanceSummary?.employee_summary?.map((emp: any) => ({
+      name: emp.employee_name,
+      empId: emp.employee_code,
+      present: emp.present_count,
+      late: emp.late_count,
+      absent: emp.absent_count,
+      presentPercent: emp.attendance_rate,
+    })) || [];
+  }, [attendanceSummary]);
 
   const filteredEmployees = useMemo(() => {
-    return employeeAttendance.filter(emp => 
-      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.empId.toLowerCase().includes(searchTerm.toLowerCase())
+    return employees.filter((emp: any) =>
+      emp.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [searchTerm]);
+  }, [employees, searchTerm]);
 
-  // Generate monthly attendance data for each employee (day by day)
-  const generateEmployeeMonthlyData = (employee) => {
-    const daysInMonth = monthlyOverview.totalWorkingDays;
-    const dailyData = [];
-    let presentCount = 0, lateCount = 0, absentCount = 0;
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      let status;
-      // Distribute the totals across the month
-      if (presentCount < employee.present && Math.random() > 0.2) {
-        status = "Present";
-        presentCount++;
-      } else if (lateCount < employee.late && Math.random() > 0.5) {
-        status = "Late";
-        lateCount++;
-      } else if (absentCount < employee.absent) {
-        status = "Absent";
-        absentCount++;
-      } else {
-        status = "Present";
-        presentCount++;
-      }
-
-      dailyData.push({
-        day: `Day ${day}`,
-        status: status,
-        value: status === "Present" ? 1 : status === "Late" ? 0.5 : 0
-      });
-    }
-    return dailyData;
-  };
-
+  // ⬇️ Download report handler
   const handleDownloadReport = async () => {
     setDownloading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL + "attendance/download-monthly-report";
-      const res = await fetch(apiUrl + `?month=${selectedMonth}`, {
-        method: "GET",
-      });
+      const token = getCookie("token");
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL +
+        "attendance/download-monthly-report";
+      const res = await fetch(
+        `${apiUrl}?month=${selectedMonth}&admin_id=${admin_Id}&year=${year_number}&month_number=${month_number}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!res.ok) throw new Error("Failed to download report");
 
@@ -102,20 +153,16 @@ export default function AttendanceAnalytics() {
       document.body.removeChild(a);
     } catch (err) {
       alert("Error downloading report");
+      console.error(err);
     } finally {
       setDownloading(false);
     }
   };
 
-  const getStatusColor = (status) => {
-    switch(status) {
-      case "Present": return "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300";
-      case "Late": return "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300";
-      case "Absent": return "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300";
-      default: return "bg-gray-100 text-gray-700";
-    }
-  };
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
+  // ✅ Render UI
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
       <div className="container mx-auto px-4 py-8">
@@ -167,71 +214,44 @@ export default function AttendanceAnalytics() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Employees</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2 dark:text-gray-100">{monthlyOverview.totalEmployees}</p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-xl dark:bg-blue-900">
-                  <Users className="w-8 h-8 text-blue-600 dark:text-blue-300" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Present</p>
-                  <p className="text-3xl font-bold text-green-600 mt-2 dark:text-green-400">{monthlyOverview.present}</p>
-                  <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">{monthlyChartData[0].percentage}% attendance</p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-xl dark:bg-green-900">
-                  <Clock className="w-8 h-8 text-green-600 dark:text-green-300" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Late</p>
-                  <p className="text-3xl font-bold text-amber-600 mt-2 dark:text-amber-400">{monthlyOverview.late}</p>
-                  <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">{monthlyChartData[1].percentage}% of total</p>
-                </div>
-                <div className="p-3 bg-amber-100 rounded-xl dark:bg-amber-900">
-                  <Clock className="w-8 h-8 text-amber-600 dark:text-amber-300" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Absent</p>
-                  <p className="text-3xl font-bold text-red-600 mt-2 dark:text-red-400">{monthlyOverview.absent}</p>
-                  <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">{monthlyChartData[2].percentage}% of total</p>
-                </div>
-                <div className="p-3 bg-red-100 rounded-xl dark:bg-red-900">
-                  <Clock className="w-8 h-8 text-red-600 dark:text-red-300" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <SummaryCard
+            title="Total Employees"
+            value={monthlyOverview.totalEmployees}
+            icon={<Users className="w-8 h-8 text-blue-600 dark:text-blue-300" />}
+            bg="bg-blue-100 dark:bg-blue-900"
+          />
+          <SummaryCard
+            title="Total Present"
+            value={monthlyOverview.present}
+            sub={`${monthlyChartData[0]?.percentage}% attendance`}
+            icon={<Clock className="w-8 h-8 text-green-600 dark:text-green-300" />}
+            bg="bg-green-100 dark:bg-green-900"
+            color="text-green-600"
+          />
+          <SummaryCard
+            title="Total Late"
+            value={monthlyOverview.late}
+            sub={`${monthlyChartData[1]?.percentage}% of total`}
+            icon={<Clock className="w-8 h-8 text-amber-600 dark:text-amber-300" />}
+            bg="bg-amber-100 dark:bg-amber-900"
+            color="text-amber-600"
+          />
+          <SummaryCard
+            title="Total Absent"
+            value={monthlyOverview.absent}
+            sub={`${monthlyChartData[2]?.percentage}% of total`}
+            icon={<Clock className="w-8 h-8 text-red-600 dark:text-red-300" />}
+            bg="bg-red-100 dark:bg-red-900"
+            color="text-red-600"
+          />
         </div>
 
-        {/* Monthly Overview Chart */}
+        {/* Bar Chart */}
         <Card className="mb-8 border-0 shadow-lg bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
           <CardHeader>
-            <CardTitle className="text-xl dark:text-gray-100">Monthly Attendance Overview</CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Attendance distribution for the selected month</p>
+            <CardTitle className="text-xl dark:text-gray-100">
+              Monthly Attendance Overview
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -239,21 +259,17 @@ export default function AttendanceAnalytics() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="status" stroke="#6b7280" />
                 <YAxis stroke="#6b7280" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
-                  }}
-                  formatter={(value, name) => {
-                    if (name === 'count') return [value, 'Count'];
-                    return [value, name];
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "rgba(255,255,255,0.95)",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
                   }}
                 />
                 <Legend />
                 <Bar dataKey="count" radius={[8, 8, 0, 0]}>
                   {monthlyChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={index} fill={entry.color} />
                   ))}
                 </Bar>
               </BarChart>
@@ -261,14 +277,20 @@ export default function AttendanceAnalytics() {
           </CardContent>
         </Card>
 
-        {/* Employee Attendance Summary */}
+        {/* Employee Table */}
         <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
           <CardHeader>
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
-                <CardTitle className="text-xl dark:text-gray-100">Employee Attendance Summary - Monthly</CardTitle>
+                <CardTitle className="text-xl dark:text-gray-100">
+                  Employee Attendance Summary
+                </CardTitle>
                 <p className="text-sm text-gray-600 mt-1 dark:text-gray-400">
-                  Monthly individual attendance breakdown for {new Date(selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  Monthly breakdown for{" "}
+                  {new Date(selectedMonth).toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })}
                 </p>
               </div>
               <div className="relative">
@@ -278,7 +300,7 @@ export default function AttendanceAnalytics() {
                   placeholder="Search employee..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-100"
+                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-gray-700 dark:text-gray-100"
                 />
               </div>
             </div>
@@ -288,74 +310,107 @@ export default function AttendanceAnalytics() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Employee</th>
-                    <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Employee ID</th>
-                    <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Present</th>
-                    <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Late</th>
-                    <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Absent</th>
-                    <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Attendance %</th>
-                    <th className="text-right py-4 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                    <th className="text-left py-4 px-4">Employee</th>
+                    <th className="text-center py-4 px-4">Employee ID</th>
+                    <th className="text-center py-4 px-4">Present</th>
+                    <th className="text-center py-4 px-4">Late</th>
+                    <th className="text-center py-4 px-4">Absent</th>
+                    <th className="text-center py-4 px-4">Attendance %</th>
+                    <th className="text-right py-4 px-4">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEmployees.map((employee) => (
-                    <tr key={employee.id} className="border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-slate-800/50 transition-colors">
+                  {filteredEmployees.map((emp: any, idx: number) => (
+                    <tr
+                      key={idx}
+                      className="border-b border-gray-100 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-slate-800/50 transition-colors"
+                    >
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
-                            {employee.name.split(' ').map(n => n[0]).join('')}
+                            {emp.name
+                              ?.split(" ")
+                              .map((n: string) => n[0])
+                              .join("")}
                           </div>
-                          <span className="font-medium text-gray-900 dark:text-gray-100">{employee.name}</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                            {emp.name}
+                          </span>
                         </div>
                       </td>
-                      <td className="py-4 px-4 text-center text-gray-600 dark:text-gray-400">{employee.empId}</td>
-                      <td className="py-4 px-4 text-center">
-                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300">
-                          {employee.present}
+                      <td className="text-center">{emp.empId}</td>
+                      <td className="text-center">
+                        <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                          {emp.present}
                         </Badge>
                       </td>
-                      <td className="py-4 px-4 text-center">
-                        <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-300">
-                          {employee.late}
+                      <td className="text-center">
+                        <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+                          {emp.late}
                         </Badge>
                       </td>
-                      <td className="py-4 px-4 text-center">
-                        <Badge className="bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-300">
-                          {employee.absent}
+                      <td className="text-center">
+                        <Badge className="bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
+                          {emp.absent}
                         </Badge>
                       </td>
-                      <td className="py-4 px-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="w-24 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                            <div 
-                              className="bg-blue-600 h-2 rounded-full dark:bg-blue-500" 
-                              style={{ width: `${employee.presentPercent}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{employee.presentPercent}%</span>
-                        </div>
+                      <td className="text-center">
+                        {emp.presentPercent.toFixed(2)}%
                       </td>
-                      <td className="py-4 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Badge className={employee.presentPercent >= 90 ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : employee.presentPercent >= 75 ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"}>
-                            {employee.presentPercent >= 90 ? "Excellent" : employee.presentPercent >= 75 ? "Good" : "Poor"}
-                          </Badge>
-                        </div>
+                      <td className="text-right">
+                        <Badge
+                          className={
+                            emp.presentPercent >= 90
+                              ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                              : emp.presentPercent >= 75
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+                              : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                          }
+                        >
+                          {emp.presentPercent >= 90
+                            ? "Excellent"
+                            : emp.presentPercent >= 75
+                            ? "Good"
+                            : "Poor"}
+                        </Badge>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            {filteredEmployees.length === 0 && (
-              <div className="text-center py-12">
-                <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600 dark:text-gray-400">No employees found matching your search.</p>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
     </div>
+  );
+}
+
+function SummaryCard({ title, value, sub, icon, bg, color }: any) {
+  return (
+    <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              {title}
+            </p>
+            <p
+              className={`text-3xl font-bold mt-2 ${
+                color || "text-gray-900 dark:text-gray-100"
+              }`}
+            >
+              {value}
+            </p>
+            {sub && (
+              <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">
+                {sub}
+              </p>
+            )}
+          </div>
+          <div className={`p-3 rounded-xl ${bg}`}>{icon}</div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
