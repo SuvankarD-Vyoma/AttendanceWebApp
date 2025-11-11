@@ -31,7 +31,7 @@ function AttendanceBarChartOverride() {
         const tokenUrl = process.env.NEXT_PUBLIC_API_URL_AUTH;
 
         // Step 1: Generate token
-        const tokenRes = await fetch(`${tokenUrl}auth/generateToken`, {
+        const tokenRes = await fetch(`http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`, {
           method: "POST",
           headers: {
             "Authorization": "Basic dGVzdDAwMDE6YWRtaW5AMTIz",

@@ -6,15 +6,15 @@ import Image from "next/image"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Eye, EyeOff, Globe } from "lucide-react"
-import { setCookie } from "cookies-next"
-import logo from '@/assets/logo.png';
+import { Eye, EyeOff } from "lucide-react"
+import logo from '@/assets/logo.png'
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner"
+import { loginApi } from "./api"
 
 const loginFormSchema = z.object({
   username: z.string().min(1, { message: "Username is required" }),
@@ -29,8 +29,6 @@ const defaultValues: Partial<LoginFormValues> = {
 }
 
 export default function LoginPage() {
-
-  // Initialize router and state variables
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -40,16 +38,15 @@ export default function LoginPage() {
     defaultValues,
   })
 
+  // Use environment variables for API endpoints and static token
   const Genarate_Token = process.env.NEXT_PUBLIC_API_URL_AUTH
   const Base_Url = process.env.NEXT_PUBLIC_API_URL
 
-  // Handle form submission
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true)
-
     try {
-      // Step 1: Generate token
-      const tokenResponse = await fetch(`${Genarate_Token}auth/generateToken`, {
+      // Step 1: Generate authentication token
+      const tokenResponse = await fetch(`http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`, {
         method: "POST",
         headers: {
           "Authorization": "Basic dGVzdDAwMDE6YWRtaW5AMTIz",
@@ -68,38 +65,24 @@ export default function LoginPage() {
       const tokenData = await tokenResponse.json()
       const token = tokenData.data.access_token
 
-      // console.log("tokenData", tokenData);
-      // console.log("token", token);
-
-      // Step 2: Authenticate user with the token
-      const authResponse = await fetch(`${Base_Url}user/authentication`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          username: data.username,
-          password: data.password,
-        }),
+      // Step 2: Use loginApi for authentication
+      const result = await loginApi({
+        username: data.username,
+        password: data.password,
+        authToken: token,
+        url: `${Base_Url}user/authentication`,
       })
 
-      // console.log("authResponse", authResponse);
-
-      if (!authResponse.ok) {
-        throw new Error("Authentication failed")
-      }
-
-      const authData = await authResponse.json()
+      const authData = result
 
       // Check if user role is HR or ADMIN
       if (authData.data && (authData.data.userrole === "HR" || authData.data.userrole === "ADMIN")) {
-        // Store user data in cookies
-        setCookie("token", token, { maxAge: 60 * 60 * 24 }) // 1 day
-        setCookie("admin_Id", authData.data.admin_id, { maxAge: 60 * 60 * 24 })
-        setCookie("username", authData.data.username, { maxAge: 60 * 60 * 24 })
-        setCookie("userRole", authData.data.userrole, { maxAge: 60 * 60 * 24 })
-        setCookie("userFullName", authData.data.userfullname, { maxAge: 60 * 60 * 24 })
+        // The cookies for access_token are already set in loginApi.
+        // If you want to set additional cookies:
+        document.cookie = `admin_Id=${encodeURIComponent(authData.data.admin_id)};max-age=${60 * 60 * 24}`
+        document.cookie = `username=${encodeURIComponent(authData.data.username)};max-age=${60 * 60 * 24}`
+        document.cookie = `userRole=${encodeURIComponent(authData.data.userrole)};max-age=${60 * 60 * 24}`
+        document.cookie = `userFullName=${encodeURIComponent(authData.data.userfullname)};max-age=${60 * 60 * 24}`
 
         toast.success("Login successful", {
           description: `Welcome, ${authData.data.userfullname}`,
