@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner"
 import { loginApi } from "./api"
+import { setCookie } from "cookies-next"
 
 const loginFormSchema = z.object({
   username: z.string().min(1, { message: "Username is required" }),
@@ -63,7 +64,10 @@ export default function LoginPage() {
       }
 
       const tokenData = await tokenResponse.json()
-      const token = tokenData.data.access_token
+      const token = tokenData.data.access_token;
+
+      // Set the token in cookies
+      setCookie('token', token)
 
       // Step 2: Use loginApi for authentication
       const result = await loginApi({

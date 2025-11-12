@@ -1,5 +1,5 @@
 // Fetch attendance info from API
-export async function getAdminAttendanceInfo(token: string, admin_emp_id: string, from_date: string, to_date: string) {
+export async function getAdminAttendanceInfo(token: string, admin_id: string, from_date: string, to_date: string) {
   const res = await fetch("https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAdminAttendanceInfo", {
     method: "POST",
     headers: {
@@ -8,7 +8,7 @@ export async function getAdminAttendanceInfo(token: string, admin_emp_id: string
       "Authorization": `Bearer ${token}`,
     },
     body: JSON.stringify({
-      admin_emp_id,
+      admin_id,
       status_id: 0,
       from_date,
       to_date,

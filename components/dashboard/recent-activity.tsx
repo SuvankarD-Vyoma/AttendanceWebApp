@@ -55,8 +55,8 @@ export default function RecentActivity() {
     setError(null);
 
     const token = getCookie("token") || "";
-    const admin_emp_id = getCookie("userId") || "";
-    const decoded = decodeURIComponent(admin_emp_id);
+    const admin_id = getCookie("userId") || "";
+    const decoded = decodeURIComponent(admin_id);
 
     try {
       const data: ApiResponse = await getAdminAttendanceInfo(

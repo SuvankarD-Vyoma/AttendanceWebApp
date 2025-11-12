@@ -15,20 +15,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import moment from "moment";
-// import {
-//   DropdownMenu,
-//   DropdownMenuContent,
-//   DropdownMenuItem,
-//   DropdownMenuTrigger
-// } from "@/components/ui/dropdown-menu";
-
-// Custom Components
-// import AttendanceFilters from "@/components/attendance/attendance-filters";
 import { EmployeeLocationMap } from "@/components/attendance/employee-location-map";
 import * as XLSX from "xlsx";
 
 // API and Types
-import { getAdminAttendanceInfo } from "@/app/attendance/api";
+import { getAdminAttendanceInfo } from "@/app/dashboard/api";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 interface AttendanceRecord {
@@ -90,16 +81,21 @@ export default function AttendancePage() {
         setLoading(true);
         setError(null);
 
+        // Get token from cookies
+        const token = (getCookie("token") as string) || "";
+        // Get admin_Id from cookies
         const admin_Id = (getCookie("admin_Id") as string) || "";
         const decoded = decodeURIComponent(admin_Id);
 
+        
         const response = await getAdminAttendanceInfo(
-          decoded,
+          token,
+          decoded, // this is admin_id
           toApiDate(startDate),
           toApiDate(endDate)
         );
 
-        if (response.status === 0 && response.data) {
+        if (response && response.status === 0 && response.data) {
           // Filter out records with insufficient data and group by employee
           const filteredData = response.data.filter((record: AttendanceRecord) => {
             // Keep records that have either employee name or at least check-in time
@@ -505,8 +501,8 @@ export default function AttendancePage() {
                                     <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-sm">
                                       {(row.employee_name ?? "NA")
                                         .split(' ')
-                                        .filter((word: string) => word.length > 0) // Add type annotation
-                                        .map((n: string) => n[0]) // Add type annotation
+                                        .filter((word: string) => word.length > 0)
+                                        .map((n: string) => n[0])
                                         .join('')
                                         .toUpperCase()
                                         .slice(0, 2)}
