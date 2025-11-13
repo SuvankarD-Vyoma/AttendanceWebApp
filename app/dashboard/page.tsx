@@ -28,22 +28,31 @@ function AttendanceBarChartOverride() {
       try {
         setLoading(true);
         const admin_Id = getCookie("admin_Id");
-        const tokenUrl = process.env.NEXT_PUBLIC_API_URL_AUTH;
 
-        // Step 1: Generate token
-        const tokenRes = await fetch(`http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`, {
-          method: "POST",
-          headers: {
-            "Authorization": "Basic dGVzdDAwMDE6YWRtaW5AMTIz",
-            "Content-Type": "application/json",
-          },
-        });
+        // ✅ Step 1: Prepare dynamic Basic Auth
+        const username = getCookie("username") || process.env.NEXT_PUBLIC_API_USERNAME || "hr0001";
+        const password = getCookie("password") || process.env.NEXT_PUBLIC_API_PASSWORD || "admin@123";
+        const credentials = `${username}:${password}`;
+        const encoded = btoa(credentials);
+
+        // ✅ Step 2: Generate token
+        const tokenRes = await fetch(
+          `https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Basic ${encoded}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
         if (!tokenRes.ok) throw new Error("Token generation failed");
 
         const tokenData = await tokenRes.json();
-        const token = tokenData.data.access_token;
+        const token = tokenData?.data?.access_token;
+        if (!token) throw new Error("No token received");
 
-        // Step 2: Define date range (last 7 days)
+        // ✅ Step 3: Define date range (last 7 days)
         const endDate = dayjs();
         const startDate = dayjs().subtract(6, "day");
 
@@ -58,20 +67,16 @@ function AttendanceBarChartOverride() {
           to_date: endDate.format("DD-MM-YYYY"),
         });
 
-        // Step 3: Fetch data
+        // ✅ Step 4: Fetch dashboard data
         const response = await fetch(
           "https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAdminDashboardDetailsv1",
-          {
-            method: "POST",
-            headers: myHeaders,
-            body: raw,
-          }
+          { method: "POST", headers: myHeaders, body: raw }
         );
 
         if (!response.ok) throw new Error(`API call failed: ${response.status}`);
         const result = await response.json();
 
-        // Step 4: Extract last_7days_summary from the new API structure
+        // ✅ Step 5: Extract and process chart data
         const apiData = result?.data?.last_7days_summary || [];
 
         if (!Array.isArray(apiData)) {
@@ -80,9 +85,7 @@ function AttendanceBarChartOverride() {
           return;
         }
 
-        // Step 5: Map processed chart data
         const processedData = apiData.map((item: any) => {
-          // Convert YYYY-MM-DD to display format
           const date = dayjs(item.report_date);
           const dayName = date.format("ddd");
           const fullDate = date.format("DD MMM");
@@ -97,31 +100,30 @@ function AttendanceBarChartOverride() {
 
         setAttendanceChartData(processedData);
       } catch (err) {
-        console.error("Failed to fetch attendance data for chart:", err);
+        console.error("Failed to fetch attendance data:", err);
         setError("Failed to load attendance data.");
         setAttendanceChartData([]);
       } finally {
         setLoading(false);
       }
     }
+
     fetchAttendanceData();
   }, []);
 
-  if (loading) {
+  if (loading)
     return (
       <div className="h-[350px] flex items-center justify-center text-muted-foreground">
         Loading attendance data...
       </div>
     );
-  }
 
-  if (error) {
+  if (error)
     return (
       <div className="h-[350px] flex items-center justify-center text-destructive">
         Error: {error}
       </div>
     );
-  }
 
   return (
     <div className="h-[350px] w-full">
@@ -155,22 +157,33 @@ export default function DashboardPage() {
     async function fetchDashboardStats() {
       try {
         const admin_Id = getCookie("admin_Id");
-        const tokenUrl = process.env.NEXT_PUBLIC_API_URL_AUTH;
 
-        const tokenRes = await fetch(`${tokenUrl}auth/generateToken`, {
-          method: "POST",
-          headers: {
-            "Authorization": "Basic dGVzdDAwMDE6YWRtaW5AMTIz",
-            "Content-Type": "application/json",
-          },
-        });
+        // ✅ Step 1: Generate Basic Auth dynamically
+        const username = getCookie("username") || process.env.NEXT_PUBLIC_API_USERNAME || "hr0001";
+        const password = getCookie("password") || process.env.NEXT_PUBLIC_API_PASSWORD || "admin@123";
+        const credentials = `${username}:${password}`;
+        const encoded = btoa(credentials);
+
+        // ✅ Step 2: Get token
+        const tokenRes = await fetch(
+          `https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Basic ${encoded}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
         if (!tokenRes.ok) throw new Error("Token generation failed");
 
         const tokenData = await tokenRes.json();
-        const token = tokenData.data.access_token;
+        const token = tokenData?.data?.access_token;
+        if (!token) throw new Error("Token missing in response");
 
         const today = dayjs().format("DD-MM-YYYY");
 
+        // ✅ Step 3: Fetch dashboard summary
         const res = await fetch(
           "https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAdminDashboardDetailsv1",
           {
@@ -190,17 +203,16 @@ export default function DashboardPage() {
 
         if (!res.ok) throw new Error("Dashboard fetch failed");
         const data = await res.json();
-        
-        // Use current_day_summary from the new API structure
-        const d = data.data.current_day_summary;
+
+        const d = data?.data?.current_day_summary || {};
 
         setStats({
-          presentCount: d.present_count,
-          absentCount: d.absent_count,
-          onLeaveCount: d.on_leave_count,
+          presentCount: d.present_count || 0,
+          absentCount: d.absent_count || 0,
+          onLeaveCount: d.on_leave_count || 0,
           totalEmployees: d.total_count || 1,
-          attendanceRate: d.attendance_rate,
-          absenceRate: d.absence_rate,
+          attendanceRate: d.attendance_rate || 0,
+          absenceRate: d.absence_rate || 0,
         });
       } catch (err) {
         console.error("Failed to fetch dashboard stats:", err);

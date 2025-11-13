@@ -39,72 +39,83 @@ export default function LoginPage() {
     defaultValues,
   })
 
-  // Use environment variables for API endpoints and static token
-  const Genarate_Token = process.env.NEXT_PUBLIC_API_URL_AUTH
   const Base_Url = process.env.NEXT_PUBLIC_API_URL
 
   async function onSubmit(data: LoginFormValues) {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      // Step 1: Generate authentication token
-      const tokenResponse = await fetch(`http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`, {
-        method: "POST",
-        headers: {
-          "Authorization": "Basic dGVzdDAwMDE6YWRtaW5AMTIz",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: data.username,
-          password: data.password,
-        }),
-      })
+      // ✅ Step 1: Dynamically generate Basic Auth header
+      const credentials = `${data.username}:${data.password}`;
+      const encodedCredentials = btoa(credentials); // Base64 encode username:password
+
+      const tokenResponse = await fetch(
+        `http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Basic ${encodedCredentials}`,
+            "Content-Type": "application/json",
+          },
+          body: "",
+        }
+      );
 
       if (!tokenResponse.ok) {
-        throw new Error("Failed to generate token")
+        let message = "Failed to generate token";
+        try {
+          const errJson = await tokenResponse.json();
+          if (errJson?.message) message = errJson.message;
+        } catch {}
+        throw new Error(message);
       }
 
-      const tokenData = await tokenResponse.json()
-      const token = tokenData.data.access_token;
+      const tokenData = await tokenResponse.json();
+      const token = tokenData?.data?.access_token;
+      
+      if (!token) {
+        throw new Error("Token missing in authentication response. Please try again later.");
+      }
 
-      // Set the token in cookies
-      setCookie('token', token)
+      // ✅ Save token in cookies
+      setCookie("token", token);
 
-      // Step 2: Use loginApi for authentication
+      // ✅ Step 2: Use loginApi for user authentication
       const result = await loginApi({
         username: data.username,
         password: data.password,
         authToken: token,
         url: `${Base_Url}user/authentication`,
-      })
+      });
 
-      const authData = result
+      const authData = result;
 
-      // Check if user role is HR or ADMIN
       if (authData.data && (authData.data.userrole === "HR" || authData.data.userrole === "ADMIN")) {
-        // The cookies for access_token are already set in loginApi.
-        // If you want to set additional cookies:
-        document.cookie = `admin_Id=${encodeURIComponent(authData.data.admin_id)};max-age=${60 * 60 * 24}`
-        document.cookie = `username=${encodeURIComponent(authData.data.username)};max-age=${60 * 60 * 24}`
-        document.cookie = `userRole=${encodeURIComponent(authData.data.userrole)};max-age=${60 * 60 * 24}`
-        document.cookie = `userFullName=${encodeURIComponent(authData.data.userfullname)};max-age=${60 * 60 * 24}`
+        document.cookie = `admin_Id=${encodeURIComponent(authData.data.admin_id)};max-age=${60 * 60 * 24}`;
+        document.cookie = `username=${encodeURIComponent(authData.data.username)};max-age=${60 * 60 * 24}`;
+        document.cookie = `userRole=${encodeURIComponent(authData.data.userrole)};max-age=${60 * 60 * 24}`;
+        document.cookie = `userFullName=${encodeURIComponent(authData.data.userfullname)};max-age=${60 * 60 * 24}`;
+        document.cookie = `password=${encodeURIComponent(data.password)};max-age=${60 * 60 * 24}`;
 
         toast.success("Login successful", {
           description: `Welcome, ${authData.data.userfullname}`,
-        })
+        });
 
-        router.push("/dashboard")
+        router.push("/dashboard");
       } else {
         toast.error("Access denied", {
           description: "You don't have permission to access this system.",
-        })
+        });
       }
-    } catch (error) {
-      console.error("Login error:", error)
+    } catch (error: any) {
+      console.error("Login error:", error);
       toast.error("Login failed", {
-        description: "Invalid credentials or server error. Please try again.",
-      })
+        description:
+          typeof error === "object" && error?.message
+            ? error.message
+            : "Invalid credentials or server error. Please try again.",
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

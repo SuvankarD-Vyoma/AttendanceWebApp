@@ -104,7 +104,9 @@ export default function AddEmployeePage() {
         e.preventDefault();
         setLoading(true);
         try {
-            const entryUserId = getCookieValue('entry_user_id') || 0;
+            // Set admin_id and entry_user_id to the same specified value
+            const adminId = "sQ%2BxhJuU18aS3q5hDfljHbL%2Bb4uMQEHjiOm2J4dI";
+            const entryUserId = adminId;
             const response = await saveEmployee({
                 emp_id: 0,
                 org_id: 1,
@@ -114,8 +116,9 @@ export default function AddEmployeePage() {
                     emp_identity_no: form.emp_identity_no,
                 },
                 entry_user_id: entryUserId,
+                admin_id: adminId,
             });
-            if (response && (response.status === 200 )) {
+            if (response && response.status === 200) {
                 toast({ title: "Employee added successfully!" });
                 router.push("/employees");
             } else {

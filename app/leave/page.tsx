@@ -31,12 +31,12 @@ interface LeaveRequest {
     leave_start_date: string;
     leave_end_date: string;
     reason_of_leave: string;
-    status: string; // This will now store "Pending", "Approved", "Rejected" strings
+    status: string;
     days: number;
     applied_date: string;
     leave_request_id?: string | number;
     admin_id?: string;
-    leave_status_id?: number; // Keep original for reference if needed
+    leave_status_id?: number;
 }
 
 export default function LeaveManagementPage() {
@@ -49,15 +49,12 @@ export default function LeaveManagementPage() {
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const itemsPerPage = 10;
 
-    // State for rejection modal and field
     const [showRejectRemark, setShowRejectRemark] = useState<null | { employeeId: string, leaveRequestId?: string | number }>(null);
     const [rejectRemark, setRejectRemark] = useState<string>("");
     const [rejectRemarkError, setRejectRemarkError] = useState<string>("");
 
-    // Utility for word count
     const wordCount = (str: string) => (str.trim() ? str.trim().split(/\s+/).length : 0);
 
-    // Helper to get status string from ID
     const getStatusStringFromId = (id: string | number): string => {
         const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
         switch (numericId) {
@@ -68,41 +65,28 @@ export default function LeaveManagementPage() {
         }
     };
 
-    // ✅ API Integration
     useEffect(() => {
         const fetchLeaveRequests = async () => {
             try {
                 setLoading(true);
                 setError(null);
 
-                // Get dynamic token and user ID from cookies
                 const token = getCookie("token") || "";
                 const admin_Id = getCookie("admin_Id");
                 if (!admin_Id) throw new Error("User ID not found in cookies");
 
                 const decodedadmin_Id = decodeURIComponent(admin_Id as string);
 
-                // Prepare headers with dynamic token
                 const myHeaders = new Headers();
                 myHeaders.append("accept", "*/*");
                 myHeaders.append("Content-Type", "application/json");
                 myHeaders.append("Authorization", `Bearer ${token}`);
 
-                // Prepare request payload with dynamic user_id
-                const raw = JSON.stringify({
-                    admin_id: decodedadmin_Id,
-                });
+                const raw = JSON.stringify({ admin_id: decodedadmin_Id });
 
-                const requestOptions: RequestInit = {
-                    method: "POST",
-                    headers: myHeaders,
-                    body: raw
-                };
-
-                // Use the admin API for leave requests as in the template
                 const response = await fetch(
                     "http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getLeaveRequestsByAdmin",
-                    requestOptions
+                    { method: "POST", headers: myHeaders, body: raw }
                 );
 
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
@@ -110,22 +94,11 @@ export default function LeaveManagementPage() {
                 const resultText = await response.text();
                 const result = JSON.parse(resultText);
 
-                // Robustly handle possible API response structures for leave requests
                 let leaveList: any[] = [];
-                if (result && Array.isArray(result)) {
-                    leaveList = result;
-                } else if (result && Array.isArray(result.data)) {
-                    leaveList = result.data;
-                } else if (result && typeof result.data === "object" && result.data !== null && Array.isArray((result.data as any).leave_requests)) {
-                    leaveList = (result.data as any).leave_requests;
-                } else if (result && result.data == null) {
-                    leaveList = [];
-                } else {
-                    const arrCandidate = Object.values(result).find((v) => Array.isArray(v));
-                    leaveList = arrCandidate || [];
-                }
-
-                if (!Array.isArray(leaveList)) leaveList = [];
+                if (Array.isArray(result)) leaveList = result;
+                else if (Array.isArray(result.data)) leaveList = result.data;
+                else if (Array.isArray(result?.data?.leave_requests)) leaveList = result.data.leave_requests;
+                else leaveList = [];
 
                 const leaveData = leaveList.map((item: any) => ({
                     admin_id: item.admin_id || '',
@@ -136,11 +109,11 @@ export default function LeaveManagementPage() {
                     leave_start_date: item.leave_start_date || '',
                     leave_end_date: item.leave_end_date || '',
                     reason_of_leave: item.reason_of_leave || '',
-                    status: getStatusStringFromId(item.leave_status_id || '1'), // MAPPING STATUS ID TO STRING HERE
+                    status: getStatusStringFromId(item.leave_status_id || '1'),
                     days: item.days || 0,
                     applied_date: item.applied_date || '',
                     leave_request_id: item.leave_request_id ?? item.id,
-                    leave_status_id: item.leave_status_id != null ? Number(item.leave_status_id) : 1 // Keep original ID if needed
+                    leave_status_id: item.leave_status_id != null ? Number(item.leave_status_id) : 1
                 }));
 
                 setLeaveRequests(leaveData);
@@ -154,14 +127,12 @@ export default function LeaveManagementPage() {
         fetchLeaveRequests();
     }, []);
 
-    // ✅ Handle approve/reject logic
     const handleAction = useCallback(async (
         employeeId: string,
         action: 'approve' | 'reject',
         leaveRequestId?: string | number,
         rejectReason?: string
     ) => {
-        // If rejecting but no remark yet → open modal first
         if (action === "reject" && !rejectReason) {
             setShowRejectRemark({ employeeId, leaveRequestId });
             setRejectRemark("");
@@ -169,7 +140,6 @@ export default function LeaveManagementPage() {
             return;
         }
 
-        // If rejecting with remark → validate before proceeding
         if (action === "reject") {
             if (!rejectReason?.trim()) {
                 setRejectRemarkError("Remark is required");
@@ -181,35 +151,19 @@ export default function LeaveManagementPage() {
             }
         }
 
-        // --- Get admin_id ---
-        let admin_id =
-            String(getCookie("admin_Id") || getCookie("admin_id") || "") || "";
+        let admin_id = String(getCookie("admin_Id") || getCookie("admin_id") || "") || "";
+        if (!admin_id && leaveRequests.length > 0) admin_id = leaveRequests[0].admin_id || "";
 
-        if (!admin_id && leaveRequests.length > 0) {
-            const first = leaveRequests[0];
-            if (first.admin_id) admin_id = first.admin_id;
-        }
-
-        if (!admin_id && (window as any).admin_id) {
-            admin_id = (window as any).admin_id;
-        }
-
-        // Find target leave request
         const leaveRequestObj = leaveRequests.find(
-            (lr: any) =>
-                lr.employee_id === employeeId &&
-                (leaveRequestId ? lr.leave_request_id == leaveRequestId : true)
+            (lr) => lr.employee_id === employeeId && (leaveRequestId ? lr.leave_request_id == leaveRequestId : true)
         );
 
-        // Dynamic field values
         const leave_type_id = leaveRequestObj?.leave_type_id || 0;
         let leave_start_date = leaveRequestObj?.leave_start_date || "";
         let leave_end_date = leaveRequestObj?.leave_end_date || "";
         const reqId = leaveRequestId ?? leaveRequestObj?.leave_request_id ?? 0;
 
-        // Ensure date format is DD-MM-YYYY
         const toDDMMYYYY = (dateStr: string) => {
-            if (!dateStr) return "";
             const parsed = new Date(dateStr);
             if (!isNaN(parsed.getTime())) {
                 const dd = String(parsed.getDate()).padStart(2, "0");
@@ -221,15 +175,7 @@ export default function LeaveManagementPage() {
         };
         leave_start_date = toDDMMYYYY(leave_start_date);
         leave_end_date = toDDMMYYYY(leave_end_date);
-
-        // API expects 2 for Approved, 3 for Rejected (based on current code)
-        // Ensure this matches your backend's expectation.
-        // Your current code for approval_status is `action === "approve" ? 2 : 3;`
-        // So, if API `status=1` means pending, `status=2` approved, `status=3` rejected.
-        // This means `action === "approve"` corresponds to `approval_status: 2`
-        // and `action === "reject"` corresponds to `approval_status: 3`.
         const approval_status = action === "approve" ? 2 : 3;
-
 
         const payload = {
             admin_id,
@@ -242,17 +188,21 @@ export default function LeaveManagementPage() {
             reject_reason: action === "reject" ? (rejectReason || "Not specified") : "",
         };
 
-        // --- Get dynamic Bearer token ---
-        let bearerToken =
-            getCookie("access_token") || getCookie("token") || "";
+        // ✅ Generate Bearer Token dynamically with username + password
+        let bearerToken = getCookie("access_token") || getCookie("token") || "";
 
         if (!bearerToken) {
             try {
-                const apiUrlAuth = process.env.NEXT_PUBLIC_API_URL_AUTH; // Assuming this is defined
+                const username = getCookie("username") || process.env.NEXT_PUBLIC_API_USERNAME || "hr0001";
+                const password = getCookie("password") || process.env.NEXT_PUBLIC_API_PASSWORD || "admin@123";
+                const credentials = `${username}:${password}`;
+                const encoded = btoa(credentials);
+
+                const apiUrlAuth = process.env.NEXT_PUBLIC_API_URL_AUTH || "https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/";
                 const tokenResponse = await fetch(`${apiUrlAuth}auth/generateToken`, {
                     method: "POST",
                     headers: {
-                        Authorization: "Basic dGVzdDAwMDE6YWRtaW5AMTIz",
+                        Authorization: `Basic ${encoded}`,
                         "Content-Type": "application/json",
                     },
                 });
@@ -265,7 +215,6 @@ export default function LeaveManagementPage() {
             }
         }
 
-        // --- API Call ---
         const myHeaders = new Headers();
         myHeaders.append("accept", "*/*");
         myHeaders.append("Content-Type", "application/json");
@@ -274,39 +223,33 @@ export default function LeaveManagementPage() {
         try {
             const response = await fetch(
                 "http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/approvalOfEmployeeLeaveRequestByAdmin",
-                {
-                    method: "POST",
-                    headers: myHeaders,
-                    body: JSON.stringify(payload),
-                }
+                { method: "POST", headers: myHeaders, body: JSON.stringify(payload) }
             );
 
             if (response.ok) {
-                setLeaveRequests((prev: any[]) =>
+                setLeaveRequests((prev) =>
                     prev.map((req) =>
-                        req.employee_id === employeeId && (leaveRequestId ? req.leave_request_id == leaveRequestId : true)
+                        req.employee_id === employeeId &&
+                        (leaveRequestId ? req.leave_request_id == leaveRequestId : true)
                             ? {
                                 ...req,
-                                status: action === "approve" ? "Approved" : "Rejected", // Update local state with string status
-                                leave_status_id: action === "approve" ? 2 : 3 // Update local state with ID if you keep it
+                                status: action === "approve" ? "Approved" : "Rejected",
+                                leave_status_id: action === "approve" ? 2 : 3,
                             }
                             : req
                     )
                 );
             } else {
                 console.error("API failed:", await response.text());
-                // Optionally show an error to the user
             }
         } catch (error) {
             console.error("Error:", error);
-            // Optionally show an error to the user
         }
 
-        // Reset modal & states
         setShowRejectRemark(null);
         setRejectRemark("");
         setRejectRemarkError("");
-    }, [leaveRequests]); // Dependency array for useCallback
+    }, [leaveRequests]);
 
     // ✅ Modal for mandatory reject remark
     const renderRejectModal = () =>
