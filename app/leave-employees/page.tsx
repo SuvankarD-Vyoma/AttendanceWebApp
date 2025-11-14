@@ -17,10 +17,13 @@ import {
 } from "lucide-react";
 import { getEmployeeLeaveListByDate } from "@/app/leave-employees/api"; // Imported as instructed
 
+function getTodayDateISO() {
+  const today = new Date();
+  // YYYY-MM-DD in local time
+  return today.toISOString().slice(0, 10);
+}
+
 export default function LeaveAnalytics() {
-  const [selectedMonth, setSelectedMonth] = useState(
-    new Date().toISOString().slice(0, 7)
-  );
   const [searchTerm, setSearchTerm] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [leaveData, setLeaveData] = useState<any>(null);
@@ -28,10 +31,9 @@ export default function LeaveAnalytics() {
   const [error, setError] = useState<string | null>(null);
 
   const admin_Id = getCookie("admin_Id");
-  const month_number = parseInt(selectedMonth.split("-")[1]);
-  const year_number = parseInt(selectedMonth.split("-")[0]);
+  const todayISO = getTodayDateISO();
 
-  // Fetch leave data using getEmployeeLeaveListByDate
+  // Fetch leave data using getEmployeeLeaveListByDate for *today* only
   useEffect(() => {
     async function fetchLeaves() {
       setLoading(true);
@@ -39,15 +41,8 @@ export default function LeaveAnalytics() {
       try {
         const res = await getEmployeeLeaveListByDate({
           admin_id: admin_Id as unknown as string,
-          from_date: `${selectedMonth}-01`,
-          to_date: `${selectedMonth}-${new Date(
-            year_number,
-            month_number,
-            0
-          )
-            .getDate()
-            .toString()
-            .padStart(2, "0")}`,
+          from_date: todayISO,
+          to_date: todayISO,
         });
 
         if (res && (res.status === 0 || res.status === undefined)) {
@@ -55,7 +50,7 @@ export default function LeaveAnalytics() {
         } else {
           setError(
             res?.message ||
-              "Error fetching leave data"
+            "Error fetching leave data"
           );
         }
       } catch (err) {
@@ -66,8 +61,8 @@ export default function LeaveAnalytics() {
       }
     }
 
-    if (admin_Id && month_number && year_number) fetchLeaves();
-  }, [admin_Id, month_number, year_number, selectedMonth]);
+    if (admin_Id) fetchLeaves();
+  }, [admin_Id, todayISO]);
 
   // Memoized leave summary
   const leaveOverview = useMemo(() => {
@@ -104,16 +99,18 @@ export default function LeaveAnalytics() {
     );
   }, [employees, searchTerm]);
 
-  // Download report handler - can keep logic similar unless API route differs
+  // Download report handler for today (may need different API if available for daily export)
   const handleDownloadReport = async () => {
     setDownloading(true);
     try {
       const token = getCookie("token");
+      // Keeping monthly endpoint, but for daily may be different (assumes this still works)
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL +
-        "leave/download-monthly-leave-report";
+        "leave/download-daily-leave-report";
+      // Try to use from_date & to_date params for today
       const res = await fetch(
-        `${apiUrl}?month=${selectedMonth}&admin_id=${admin_Id}&year=${year_number}&month_number=${month_number}`,
+        `${apiUrl}?admin_id=${admin_Id}&from_date=${todayISO}&to_date=${todayISO}`,
         {
           method: "GET",
           headers: {
@@ -128,7 +125,7 @@ export default function LeaveAnalytics() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `leave_report_${selectedMonth}.xlsx`;
+      a.download = `leave_report_${todayISO}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -154,7 +151,15 @@ export default function LeaveAnalytics() {
       </div>
     );
 
-  // UI redesign to match API response
+  // Today's formatted date string for heading
+  const todayStr = new Date(todayISO).toLocaleDateString(undefined, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // UI: Today leave list
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
       <div className="container mx-auto px-4 py-8">
@@ -167,22 +172,13 @@ export default function LeaveAnalytics() {
                 Leave Dashboard
               </div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                Monthly Leave Report
+                Today's Leave List
               </h1>
               <p className="text-gray-600 mt-2 dark:text-gray-300">
-                Company leave statistics and employee leave history for the month.
+                Employees on leave for <span className="font-semibold">{todayStr}</span>.
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-white dark:bg-slate-900 rounded-lg px-4 py-2 shadow-sm border border-gray-200 dark:border-gray-700">
-                <Calendar className="w-5 h-5 text-gray-500" />
-                <input
-                  type="month"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="border-0 bg-transparent focus:outline-none dark:text-gray-100"
-                />
-              </div>
+            <div>
               <Button
                 onClick={handleDownloadReport}
                 disabled={downloading}
@@ -196,7 +192,7 @@ export default function LeaveAnalytics() {
                 ) : (
                   <>
                     <Download className="w-4 h-4 mr-2" />
-                    Export Report
+                    Export Today's List
                   </>
                 )}
               </Button>
@@ -207,7 +203,7 @@ export default function LeaveAnalytics() {
         {/* Leave Summary Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <SummaryCard
-            title="Total Leave"
+            title="Total Leave Today"
             value={leaveOverview.totalLeave}
             icon={<UserCheck className="w-8 h-8 text-blue-600 dark:text-blue-300" />}
             bg="bg-blue-100 dark:bg-blue-900"
@@ -244,14 +240,10 @@ export default function LeaveAnalytics() {
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                   <CardTitle className="text-xl dark:text-gray-100">
-                    Employee Leave History
+                    Today's Employee Leaves
                   </CardTitle>
                   <p className="text-sm text-gray-600 mt-1 dark:text-gray-400">
-                    Leave records for{" "}
-                    {new Date(selectedMonth).toLocaleDateString("en-US", {
-                      month: "long",
-                      year: "numeric",
-                    })}
+                    Leave records for <span className="font-semibold">{todayStr}</span>
                   </p>
                 </div>
                 <div className="relative">
@@ -269,7 +261,7 @@ export default function LeaveAnalytics() {
             <CardContent>
               {filteredEmployees.length === 0 ? (
                 <div className="py-8 text-gray-500 text-center">
-                  No leave records found.
+                  No one is on leave today.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
