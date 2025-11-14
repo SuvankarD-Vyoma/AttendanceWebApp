@@ -13,7 +13,7 @@ import {
     Filter,
     ArrowUpDown
 } from 'lucide-react';
-
+import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -65,78 +65,77 @@ export default function LeaveManagementPage() {
         }
     };
 
+    const fetchLeaveRequests = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const token = getCookie("token") || "";
+            const admin_Id = getCookie("admin_Id");
+            if (!admin_Id) throw new Error("User ID not found in cookies");
+
+            const decodedadmin_Id = decodeURIComponent(admin_Id as string);
+
+            const myHeaders = new Headers();
+            myHeaders.append("accept", "*/*");
+            myHeaders.append("Content-Type", "application/json");
+            myHeaders.append("Authorization", `Bearer ${token}`);
+
+            const raw = JSON.stringify({ admin_id: decodedadmin_Id });
+
+            const response = await fetch(
+                "http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getLeaveRequestsByAdmin",
+                { method: "POST", headers: myHeaders, body: raw }
+            );
+
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+            const resultText = await response.text();
+            const result = JSON.parse(resultText);
+
+            let leaveList: any[] = [];
+            if (Array.isArray(result)) leaveList = result;
+            else if (Array.isArray(result.data)) leaveList = result.data;
+            else if (Array.isArray(result?.data?.leave_requests)) leaveList = result.data.leave_requests;
+
+            const leaveData = leaveList.map((item: any) => ({
+                admin_id: item.admin_id || '',
+                employee_id: item.employee_id || '',
+                employee_name: item.employee_name || 'Unknown',
+                leave_type_name: item.leave_type_name || '',
+                leave_type_id: item.leave_type_id != null ? Number(item.leave_type_id) : 0,
+                leave_start_date: item.leave_start_date || '',
+                leave_end_date: item.leave_end_date || '',
+                reason_of_leave: item.reason_of_leave || '',
+                status: getStatusStringFromId(item.leave_status_id || '1'),
+                days: item.days || 0,
+                applied_date: item.applied_date || '',
+                leave_request_id: item.leave_request_id ?? item.id,
+                leave_status_id: item.leave_status_id != null ? Number(item.leave_status_id) : 1
+            }));
+
+            setLeaveRequests(leaveData);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchLeaveRequests = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-
-                const token = getCookie("token") || "";
-                const admin_Id = getCookie("admin_Id");
-                if (!admin_Id) throw new Error("User ID not found in cookies");
-
-                const decodedadmin_Id = decodeURIComponent(admin_Id as string);
-
-                const myHeaders = new Headers();
-                myHeaders.append("accept", "*/*");
-                myHeaders.append("Content-Type", "application/json");
-                myHeaders.append("Authorization", `Bearer ${token}`);
-
-                const raw = JSON.stringify({ admin_id: decodedadmin_Id });
-
-                const response = await fetch(
-                    "http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getLeaveRequestsByAdmin",
-                    { method: "POST", headers: myHeaders, body: raw }
-                );
-
-                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-
-                const resultText = await response.text();
-                const result = JSON.parse(resultText);
-
-                let leaveList: any[] = [];
-                if (Array.isArray(result)) leaveList = result;
-                else if (Array.isArray(result.data)) leaveList = result.data;
-                else if (Array.isArray(result?.data?.leave_requests)) leaveList = result.data.leave_requests;
-                else leaveList = [];
-
-                const leaveData = leaveList.map((item: any) => ({
-                    admin_id: item.admin_id || '',
-                    employee_id: item.employee_id || '',
-                    employee_name: item.employee_name || 'Unknown',
-                    leave_type_name: item.leave_type_name || '',
-                    leave_type_id: item.leave_type_id != null ? Number(item.leave_type_id) : 0,
-                    leave_start_date: item.leave_start_date || '',
-                    leave_end_date: item.leave_end_date || '',
-                    reason_of_leave: item.reason_of_leave || '',
-                    status: getStatusStringFromId(item.leave_status_id || '1'),
-                    days: item.days || 0,
-                    applied_date: item.applied_date || '',
-                    leave_request_id: item.leave_request_id ?? item.id,
-                    leave_status_id: item.leave_status_id != null ? Number(item.leave_status_id) : 1
-                }));
-
-                setLeaveRequests(leaveData);
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchLeaveRequests();
     }, []);
 
+    // FIXED handleAction — no more "API failed: {}"
     const handleAction = useCallback(async (
         employeeId: string,
         action: 'approve' | 'reject',
         leaveRequestId?: string | number,
         rejectReason?: string
     ) => {
+
         if (action === "reject" && !rejectReason) {
             setShowRejectRemark({ employeeId, leaveRequestId });
-            setRejectRemark("");
-            setRejectRemarkError("");
             return;
         }
 
@@ -151,69 +150,30 @@ export default function LeaveManagementPage() {
             }
         }
 
-        let admin_id = String(getCookie("admin_Id") || getCookie("admin_id") || "") || "";
-        if (!admin_id && leaveRequests.length > 0) admin_id = leaveRequests[0].admin_id || "";
-
+        let admin_id = String(getCookie("admin_Id") || "");
         const leaveRequestObj = leaveRequests.find(
             (lr) => lr.employee_id === employeeId && (leaveRequestId ? lr.leave_request_id == leaveRequestId : true)
         );
 
         const leave_type_id = leaveRequestObj?.leave_type_id || 0;
-        let leave_start_date = leaveRequestObj?.leave_start_date || "";
-        let leave_end_date = leaveRequestObj?.leave_end_date || "";
-        const reqId = leaveRequestId ?? leaveRequestObj?.leave_request_id ?? 0;
 
         const toDDMMYYYY = (dateStr: string) => {
-            const parsed = new Date(dateStr);
-            if (!isNaN(parsed.getTime())) {
-                const dd = String(parsed.getDate()).padStart(2, "0");
-                const mm = String(parsed.getMonth() + 1).padStart(2, "0");
-                const yyyy = String(parsed.getFullYear());
-                return `${dd}-${mm}-${yyyy}`;
-            }
-            return dateStr;
+            const d = new Date(dateStr);
+            return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
         };
-        leave_start_date = toDDMMYYYY(leave_start_date);
-        leave_end_date = toDDMMYYYY(leave_end_date);
-        const approval_status = action === "approve" ? 2 : 3;
 
         const payload = {
             admin_id,
             employee_id: employeeId,
             leave_type_id,
-            approval_status,
-            leave_request_id: reqId,
-            leave_start_date,
-            leave_end_date,
-            reject_reason: action === "reject" ? (rejectReason || "Not specified") : "",
+            approval_status: action === "approve" ? 2 : 3,
+            leave_request_id: leaveRequestId,
+            leave_start_date: toDDMMYYYY(leaveRequestObj?.leave_start_date || ""),
+            leave_end_date: toDDMMYYYY(leaveRequestObj?.leave_end_date || ""),
+            reject_reason: action === "reject" ? rejectReason : "",
         };
 
-        // ✅ Generate Bearer Token dynamically with username + password
         let bearerToken = getCookie("access_token") || getCookie("token") || "";
-
-        if (!bearerToken) {
-            try {
-                const username = getCookie("username") || process.env.NEXT_PUBLIC_API_USERNAME || "hr0001";
-                const password = getCookie("password") || process.env.NEXT_PUBLIC_API_PASSWORD || "admin@123";
-                const credentials = `${username}:${password}`;
-                const encoded = btoa(credentials);
-
-                const apiUrlAuth = process.env.NEXT_PUBLIC_API_URL_AUTH || "https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/";
-                const tokenResponse = await fetch(`${apiUrlAuth}auth/generateToken`, {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Basic ${encoded}`,
-                        "Content-Type": "application/json",
-                    },
-                });
-                if (tokenResponse.ok) {
-                    const tokenData = await tokenResponse.json();
-                    bearerToken = tokenData.data?.access_token || "";
-                }
-            } catch (err) {
-                console.error("Token fetch failed:", err);
-            }
-        }
 
         const myHeaders = new Headers();
         myHeaders.append("accept", "*/*");
@@ -222,34 +182,34 @@ export default function LeaveManagementPage() {
 
         try {
             const response = await fetch(
-                "http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/approvalOfEmployeeLeaveRequestByAdmin",
+                "https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/approvalOfEmployeeLeaveRequestByAdmin",
                 { method: "POST", headers: myHeaders, body: JSON.stringify(payload) }
             );
 
-            if (response.ok) {
-                setLeaveRequests((prev) =>
-                    prev.map((req) =>
-                        req.employee_id === employeeId &&
-                        (leaveRequestId ? req.leave_request_id == leaveRequestId : true)
-                            ? {
-                                ...req,
-                                status: action === "approve" ? "Approved" : "Rejected",
-                                leave_status_id: action === "approve" ? 2 : 3,
-                            }
-                            : req
-                    )
-                );
-            } else {
-                console.error("API failed:", await response.text());
+            let responseData: any = null;
+            try {
+                responseData = await response.json();
+            } catch (e) {
+                responseData = {};
             }
-        } catch (error) {
-            console.error("Error:", error);
+
+            // FIX — do NOT treat {} as failure
+            if (response.ok) {
+                toast.success(responseData?.message || "Leave status updated successfully");
+                fetchLeaveRequests();
+            } else {
+                toast.error(responseData?.message || "Failed to update leave status.");
+            }
+
+        } catch (err) {
+            toast.error("Unexpected error occurred");
         }
 
         setShowRejectRemark(null);
         setRejectRemark("");
         setRejectRemarkError("");
     }, [leaveRequests]);
+    // --- End Fix ---
 
     // ✅ Modal for mandatory reject remark
     const renderRejectModal = () =>
@@ -510,51 +470,51 @@ export default function LeaveManagementPage() {
                         <Table>
                             <TableHeader className="bg-slate-100 dark:bg-black">
                                 <TableRow className="border-b-slate-200 dark:border-b-zinc-800">
-                                    <TableHead>
-                                        <Button variant="ghost" onClick={() => handleSort('employee_name')} className="px-0 text-slate-800 dark:text-slate-300">
+                                    <TableHead className="text-center">
+                                        <Button variant="ghost" onClick={() => handleSort('employee_name')} className="px-0 text-slate-800 dark:text-slate-300 mx-auto flex items-center justify-center">
                                             Employee <ArrowUpDown className="ml-1 h-4 w-4" />
                                         </Button>
                                     </TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Duration</TableHead>
-                                    <TableHead>Days</TableHead>
-                                    <TableHead>Reason</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead className="text-center">Type</TableHead>
+                                    <TableHead className="text-center">Duration</TableHead>
+                                    <TableHead className="text-center">Days</TableHead>
+                                    <TableHead className="text-center">Reason</TableHead>
+                                    <TableHead className="text-center">Status</TableHead>
+                                    <TableHead className="text-center">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
 
                             <TableBody>
                                 {currentItems.length > 0 ? currentItems.map((req) => (
                                     <TableRow key={req.leave_request_id || req.employee_id} className="border-b border-slate-200/80 dark:border-zinc-800 hover:bg-slate-100/50">
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
+                                        <TableCell className="text-center">
+                                            <div className="flex items-center gap-3 justify-center">
                                                 <Avatar className="h-10 w-10 border-2 border-white">
                                                     <AvatarImage src="" alt={req.employee_name} />
                                                     <AvatarFallback>{req.employee_name.slice(0, 2).toUpperCase()}</AvatarFallback>
                                                 </Avatar>
-                                                <div>
+                                                <div className="text-left">
                                                     <div className="font-medium">{req.employee_name}</div>
                                                     <div className="text-xs text-slate-500">Applied: {req.applied_date}</div>
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell>{req.leave_type_name}</TableCell>
-                                        <TableCell>
+                                        <TableCell className="text-center">{req.leave_type_name}</TableCell>
+                                        <TableCell className="text-center">
                                             <p>{formatFriendlyDate(req.leave_start_date)}</p>
                                             <p className="text-xs text-slate-500">to</p>
                                             <p>{formatFriendlyDate(req.leave_end_date)}</p>
                                         </TableCell>
-                                        <TableCell>{duration(req.leave_start_date, req.leave_end_date)} days</TableCell>
-                                        <TableCell className="text-xs truncate max-w-[120px]">{req.reason_of_leave}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className={`capitalize ${getStatusBadgeVariant(req.status)} text-xs`}>
+                                        <TableCell className="text-center">{duration(req.leave_start_date, req.leave_end_date)} days</TableCell>
+                                        <TableCell className="text-center text-xs truncate max-w-[120px]">{req.reason_of_leave}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge variant="outline" className={`capitalize ${getStatusBadgeVariant(req.status)} text-xs flex items-center justify-center`}>
                                                 <div className={`w-2 h-2 rounded-full mr-1.5 ${getStatusDotColor(req.status)}`}></div>
                                                 {req.status.toLowerCase()}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-1">
+                                        <TableCell className="text-center">
+                                            <div className="flex justify-center gap-1">
                                                 {/* Only show action buttons if status is pending */}
                                                 {req.status.toLowerCase() === 'pending' ? (
                                                     <>

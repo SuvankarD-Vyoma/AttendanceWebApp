@@ -52,6 +52,8 @@
     "eslint": "8.57.0",
     "eslint-config-next": "15.3.5",
     "input-otp": "^1.2.4",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.446.0",
     "moment": "^2.30.1",

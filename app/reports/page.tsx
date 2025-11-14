@@ -106,15 +106,18 @@ export default function AttendanceAnalytics() {
   }, [attendanceSummary]);
 
   const employees = useMemo(() => {
-    return attendanceSummary?.employee_summary?.map((emp: any) => ({
-      name: emp.employee_name,
-      empId: emp.employee_code,
-      present: emp.present_count,
-      late: emp.late_count,
-      absent: emp.absent_count,
-      presentPercent: emp.attendance_rate,
-    })) || [];
+    return (
+      attendanceSummary?.employee_summary?.map((emp: any) => ({
+        name: emp?.employee_name ? emp.employee_name.toString() : "",
+        empId: emp?.employee_code?.toString() || "-",
+        present: emp?.present_count || 0,
+        late: emp?.late_count || 0,
+        absent: emp?.absent_count || 0,
+        presentPercent: Number(emp?.attendance_rate || 0),
+      })) || []
+    );
   }, [attendanceSummary]);
+  
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((emp: any) =>

@@ -2,7 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/providers/theme-provider';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from "@/components/ui/sonner"
 import RootLayoutClient from '@/components/layout/root-layout-client';
 
 const inter = Inter({ subsets: ['latin'] });
