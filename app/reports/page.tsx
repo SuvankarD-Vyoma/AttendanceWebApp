@@ -26,6 +26,9 @@ import {
 } from "recharts";
 import { getAttendenceSummaryDetails } from "@/app/reports/api";
 
+// Safely check if we're on the client-side (browser) before using dynamic import
+const isClient = typeof window !== "undefined";
+
 export default function AttendanceAnalytics() {
   const [selectedMonth, setSelectedMonth] = useState(
     new Date().toISOString().slice(0, 7)
@@ -40,7 +43,6 @@ export default function AttendanceAnalytics() {
   const month_number = parseInt(selectedMonth.split("-")[1]);
   const year_number = parseInt(selectedMonth.split("-")[0]);
 
-  // ✅ Fetch attendance summary data
   useEffect(() => {
     async function fetchSummary() {
       setLoading(true);
@@ -64,10 +66,11 @@ export default function AttendanceAnalytics() {
       }
     }
 
-    if (admin_Id && month_number && year_number) fetchSummary();
+    if (admin_Id && month_number && year_number) {
+      fetchSummary();
+    }
   }, [admin_Id, month_number, year_number]);
 
-  // 🧮 Derived data for UI
   const monthlyOverview = useMemo(() => {
     if (!attendanceSummary) return {};
     const summary = attendanceSummary.attendence_summary;
@@ -114,10 +117,10 @@ export default function AttendanceAnalytics() {
         late: emp?.late_count || 0,
         absent: emp?.absent_count || 0,
         presentPercent: Number(emp?.attendance_rate || 0),
+        raw: emp, // retain original for Excel export
       })) || []
     );
   }, [attendanceSummary]);
-  
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((emp: any) =>
@@ -125,27 +128,116 @@ export default function AttendanceAnalytics() {
     );
   }, [employees, searchTerm]);
 
-  // ⬇️ Download report handler
+  function getAllDatesOfMonth(year: number, month: number) {
+    const days = new Date(year, month, 0).getDate();
+    const res: string[] = [];
+    for (let d = 1; d <= days; d++) {
+      const dd = d.toString().padStart(2, "0");
+      const mm = month.toString().padStart(2, "0");
+      res.push(`${year}-${mm}-${dd}`);
+    }
+    return res;
+  }
+
+  // Download Excel report handler with error boundary for missing exceljs
   const handleDownloadReport = async () => {
     setDownloading(true);
     try {
-      const token = getCookie("token");
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL +
-        "attendance/download-monthly-report";
-      const res = await fetch(
-        `${apiUrl}?month=${selectedMonth}&admin_id=${admin_Id}&year=${year_number}&month_number=${month_number}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      if (!isClient) {
+        alert("Excel export only supported in browser.");
+        return;
+      }
+
+      let ExcelJS: any = null;
+      try {
+        ExcelJS = (await import("exceljs")).default;
+        if (!ExcelJS) {
+          throw new Error();
         }
-      );
+      } catch (_) {
+        alert(
+          "Excel report download is not available because the 'exceljs' library could not be loaded on the client." +
+          "\n\nPlease ensure 'exceljs' is installed with:\n\nnpm install exceljs\n\n" +
+          "Reload the page after installing."
+        );
+        setDownloading(false);
+        return;
+      }
 
-      if (!res.ok) throw new Error("Failed to download report");
+      const allDates = getAllDatesOfMonth(year_number, month_number);
 
-      const blob = await res.blob();
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet(`Attendance ${selectedMonth}`);
+
+      const header: any[] = ["Name"];
+      allDates.forEach((date) => {
+        header.push(
+          `${date} - Entry Time`,
+          `${date} - Exit Time`,
+          `${date} - Late Count`,
+          `${date} - Absent Count`,
+          `${date} - Present Count`
+        );
+      });
+      worksheet.addRow(header);
+
+      employees.forEach((emp: any) => {
+        const row: any[] = [emp.name];
+
+        const attDetailsRaw =
+          emp.raw?.attendance_details ||
+          emp.raw?.attendence_details || // typo in some backends
+          emp.raw?.attendence_detail ||
+          [];
+
+        let dayMap: Record<string, any> = {};
+
+        if (Array.isArray(attDetailsRaw)) {
+          for (const item of attDetailsRaw) {
+            const itemDate = item.date
+              ? item.date.split("T")[0]
+              : null;
+            if (itemDate) {
+              dayMap[itemDate] = item;
+            }
+          }
+        } else if (typeof attDetailsRaw === "object" && attDetailsRaw !== null) {
+          dayMap = attDetailsRaw;
+        }
+
+        allDates.forEach((date) => {
+          const det = dayMap[date] || {};
+          let entry = det.entry_time || det.in_time || "";
+          let exit = det.exit_time || det.out_time || "";
+          let late = det.late_count ?? det.is_late ?? det.late ?? "";
+          if (late === true) late = 1;
+          if (late === false) late = 0;
+          let absent = det.absent_count ?? det.is_absent ?? det.absent ?? "";
+          if (absent === true) absent = 1;
+          if (absent === false) absent = 0;
+          let present = det.present_count ?? det.is_present ?? det.present ?? "";
+          if (present === true) present = 1;
+          if (present === false) present = 0;
+          if (late === "" && typeof det.status === "string")
+            late = det.status.toLowerCase() === "late" ? 1 : 0;
+          if (present === "" && typeof det.status === "string")
+            present = det.status.toLowerCase() === "present" ? 1 : 0;
+          if (absent === "" && typeof det.status === "string")
+            absent = det.status.toLowerCase() === "absent" ? 1 : 0;
+          row.push(entry, exit, late, absent, present);
+        });
+        worksheet.addRow(row);
+      });
+
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.columns.forEach((col) => {
+        col.width = 16;
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -155,17 +247,19 @@ export default function AttendanceAnalytics() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
-      alert("Error downloading report");
-      console.error(err);
+      alert("Error downloading Excel report. " + (err instanceof Error ? err.message : ""));
+      // Only log the error if 'console' exists (should always in browser)
+      if (typeof console !== "undefined") {
+        console.error(err);
+      }
     } finally {
       setDownloading(false);
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) return <div className="text-center py-8 dark:text-gray-200">Loading...</div>;
+  if (error) return <div className="text-center py-8 text-red-500">Error: {error}</div>;
 
-  // ✅ Render UI
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950">
       <div className="container mx-auto px-4 py-8">
@@ -174,8 +268,7 @@ export default function AttendanceAnalytics() {
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-3 dark:bg-blue-900 dark:text-blue-200">
-                <TrendingUp className="w-4 h-4" />
-                Analytics Dashboard
+                <TrendingUp className="w-4 h-4" /> Analytics Dashboard
               </div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                 Monthly Attendance Report
@@ -201,13 +294,12 @@ export default function AttendanceAnalytics() {
               >
                 {downloading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />{" "}
                     Downloading...
                   </>
                 ) : (
                   <>
-                    <Download className="w-4 h-4 mr-2" />
-                    Export Report
+                    <Download className="w-4 h-4 mr-2" /> Export Report
                   </>
                 )}
               </Button>
