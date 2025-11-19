@@ -139,8 +139,7 @@ export default function AttendanceAnalytics() {
     return res;
   }
 
-  // Download Excel report handler with error boundary for missing exceljs
-// Replace the handleDownloadReport function with this updated version:
+  // Download Excel report 
 
 const handleDownloadReport = async () => {
   setDownloading(true);
@@ -149,7 +148,6 @@ const handleDownloadReport = async () => {
       alert("Excel export only supported in browser.");
       return;
     }
-
     let ExcelJS: any = null;
     try {
       ExcelJS = (await import("exceljs")).default;
@@ -165,24 +163,18 @@ const handleDownloadReport = async () => {
       setDownloading(false);
       return;
     }
-
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(`Attendance Report`);
-
-    // Create header: Column 1 is employee_name, then for selected month: late_count, absent_count, present_count
     const monthName = new Date(selectedMonth).toLocaleDateString("en-US", {
       month: "long",
       year: "numeric",
     });
-
     const header: any[] = ["Employee Name"];
     header.push(`${monthName} - Late Count`);
     header.push(`${monthName} - Absent Count`);
     header.push(`${monthName} - Present Count`);
-
     worksheet.addRow(header);
 
-    // Add employee data rows
     employees.forEach((emp: any) => {
       const row: any[] = [emp.name];
       row.push(emp.late);
@@ -190,8 +182,6 @@ const handleDownloadReport = async () => {
       row.push(emp.present);
       worksheet.addRow(row);
     });
-
-    // Style header row
     worksheet.getRow(1).font = { bold: true };
     worksheet.getRow(1).fill = {
       type: "pattern",
@@ -199,22 +189,17 @@ const handleDownloadReport = async () => {
       fgColor: { argb: "FF4472C4" },
     };
     worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
-
-    // Set column widths
     worksheet.columns = [
       { width: 25 },
       { width: 18 },
       { width: 18 },
       { width: 18 },
     ];
-
-    // Center align data columns
     for (let row = 2; row <= employees.length + 1; row++) {
       for (let col = 2; col <= 4; col++) {
         worksheet.getCell(row, col).alignment = { horizontal: "center" };
       }
     }
-
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

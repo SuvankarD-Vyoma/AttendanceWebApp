@@ -264,7 +264,6 @@ export default function DashboardPage() {
             description={`${stats.attendanceRate.toFixed(0)}% of total employees`}
             icon="users"
             status={EmployeeStatus.PRESENT}
-            color="#22c55e"
           />
         </Link>
 
@@ -275,7 +274,6 @@ export default function DashboardPage() {
             description={`${stats.absenceRate.toFixed(0)}% of total employees`}
             icon="user-minus"
             status={EmployeeStatus.ABSENT}
-            color="#ef4444"
           />
         </Link>
 
@@ -288,7 +286,6 @@ export default function DashboardPage() {
             )}% of total employees`}
             icon="calendar"
             status={EmployeeStatus.ON_LEAVE}
-            color="#facc15"
           />
         </Link>
       </div>

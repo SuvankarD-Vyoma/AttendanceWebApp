@@ -260,10 +260,10 @@ export default function EmployeesPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button onClick={handleAddEmployeeButton} className="h-11 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            {/* <Button onClick={handleAddEmployeeButton} className="h-11 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
               <UserPlus className="mr-2 h-4 w-4" />
               Add Employee
-            </Button>
+            </Button> */}
           </div>
         </div>
 
@@ -277,7 +277,7 @@ export default function EmployeesPage() {
                 </div>
                 Employee Directory
               </CardTitle>
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" className="border-slate-200/60 dark:border-slate-800 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-all duration-200">
                   <Filter className="mr-2 h-4 w-4" />
                   Filter
@@ -286,7 +286,7 @@ export default function EmployeesPage() {
                   <Download className="mr-2 h-4 w-4" />
                   Export
                 </Button>
-              </div>
+              </div> */}
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -411,12 +411,12 @@ export default function EmployeesPage() {
                             <DropdownMenuItem onClick={() => handleView(employee)} className="hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg m-1">
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg m-1">
+                            {/* <DropdownMenuItem className="hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg m-1">
                               Edit Employee
                             </DropdownMenuItem>
                             <DropdownMenuItem className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg m-1">
                               Deactivate
-                            </DropdownMenuItem>
+                            </DropdownMenuItem> */}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -440,10 +440,10 @@ export default function EmployeesPage() {
                 <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-md mx-auto">
                   {searchQuery ? "Try adjusting your search terms or filters to find what you're looking for" : "Start building your team by adding your first employee"}
                 </p>
-                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                {/* <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
                   <UserPlus className="mr-2 h-4 w-4" />
                   Add Employee
-                </Button>
+                </Button> */}
               </div>
             )}
 
