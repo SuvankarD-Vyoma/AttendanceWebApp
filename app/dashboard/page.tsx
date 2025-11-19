@@ -18,24 +18,26 @@ import {
   Legend,
 } from "recharts";
 
+// --- Fix: Avoid setState in render or action chain/ForwardRef context ---
+
 function AttendanceBarChartOverride() {
   const [attendanceChartData, setAttendanceChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchAttendanceData() {
       try {
         setLoading(true);
         const admin_Id = getCookie("admin_Id");
 
-        // ✅ Step 1: Prepare dynamic Basic Auth
         const username = getCookie("username") || process.env.NEXT_PUBLIC_API_USERNAME || "hr0001";
         const password = getCookie("password") || process.env.NEXT_PUBLIC_API_PASSWORD || "admin@123";
         const credentials = `${username}:${password}`;
-        const encoded = btoa(credentials);
+        const encoded = typeof window !== "undefined" ? window.btoa(credentials) : "";
 
-        // ✅ Step 2: Generate token
         const tokenRes = await fetch(
           `https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`,
           {
@@ -52,7 +54,6 @@ function AttendanceBarChartOverride() {
         const token = tokenData?.data?.access_token;
         if (!token) throw new Error("No token received");
 
-        // ✅ Step 3: Define date range (last 7 days)
         const endDate = dayjs();
         const startDate = dayjs().subtract(6, "day");
 
@@ -67,7 +68,6 @@ function AttendanceBarChartOverride() {
           to_date: endDate.format("DD-MM-YYYY"),
         });
 
-        // ✅ Step 4: Fetch dashboard data
         const response = await fetch(
           "https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAdminDashboardDetailsv1",
           { method: "POST", headers: myHeaders, body: raw }
@@ -76,39 +76,43 @@ function AttendanceBarChartOverride() {
         if (!response.ok) throw new Error(`API call failed: ${response.status}`);
         const result = await response.json();
 
-        // ✅ Step 5: Extract and process chart data
         const apiData = result?.data?.last_7days_summary || [];
 
-        if (!Array.isArray(apiData)) {
-          console.warn("Unexpected API format:", result);
-          setAttendanceChartData([]);
-          return;
+        let processedData: any[] = [];
+        if (Array.isArray(apiData)) {
+          processedData = apiData.map((item: any) => {
+            const date = dayjs(item.report_date);
+            const dayName = date.format("ddd");
+            const fullDate = date.format("DD MMM");
+
+            return {
+              day: `${dayName} ${fullDate}`,
+              Present: item.present_count || 0,
+              Absent: item.absent_count || 0,
+              OnLeave: item.on_leave_count || 0,
+            };
+          });
         }
-
-        const processedData = apiData.map((item: any) => {
-          const date = dayjs(item.report_date);
-          const dayName = date.format("ddd");
-          const fullDate = date.format("DD MMM");
-
-          return {
-            day: `${dayName} ${fullDate}`,
-            Present: item.present_count || 0,
-            Absent: item.absent_count || 0,
-            OnLeave: item.on_leave_count || 0,
-          };
-        });
-
-        setAttendanceChartData(processedData);
+        // Avoid calling setState if unmounted
+        if (!cancelled) {
+          setAttendanceChartData(processedData);
+          setError(null);
+        }
       } catch (err) {
-        console.error("Failed to fetch attendance data:", err);
-        setError("Failed to load attendance data.");
-        setAttendanceChartData([]);
+        if (!cancelled) {
+          console.error("Failed to fetch attendance data:", err);
+          setError("Failed to load attendance data.");
+          setAttendanceChartData([]);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     fetchAttendanceData();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading)
@@ -154,17 +158,16 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
+    let cancelled = false;
     async function fetchDashboardStats() {
       try {
         const admin_Id = getCookie("admin_Id");
 
-        // ✅ Step 1: Generate Basic Auth dynamically
         const username = getCookie("username") || process.env.NEXT_PUBLIC_API_USERNAME || "hr0001";
         const password = getCookie("password") || process.env.NEXT_PUBLIC_API_PASSWORD || "admin@123";
         const credentials = `${username}:${password}`;
-        const encoded = btoa(credentials);
+        const encoded = typeof window !== "undefined" ? window.btoa(credentials) : "";
 
-        // ✅ Step 2: Get token
         const tokenRes = await fetch(
           `https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`,
           {
@@ -183,7 +186,6 @@ export default function DashboardPage() {
 
         const today = dayjs().format("DD-MM-YYYY");
 
-        // ✅ Step 3: Fetch dashboard summary
         const res = await fetch(
           "https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAdminDashboardDetailsv1",
           {
@@ -206,7 +208,7 @@ export default function DashboardPage() {
 
         const d = data?.data?.current_day_summary || {};
 
-        setStats({
+        if (!cancelled) setStats({
           presentCount: d.present_count || 0,
           absentCount: d.absent_count || 0,
           onLeaveCount: d.on_leave_count || 0,
@@ -216,7 +218,7 @@ export default function DashboardPage() {
         });
       } catch (err) {
         console.error("Failed to fetch dashboard stats:", err);
-        setStats({
+        if (!cancelled) setStats({
           presentCount: 0,
           absentCount: 0,
           onLeaveCount: 0,
@@ -228,6 +230,7 @@ export default function DashboardPage() {
     }
 
     fetchDashboardStats();
+    return () => { cancelled = true; };
   }, []);
 
   return (

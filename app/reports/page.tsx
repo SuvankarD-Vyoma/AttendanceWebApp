@@ -140,122 +140,102 @@ export default function AttendanceAnalytics() {
   }
 
   // Download Excel report handler with error boundary for missing exceljs
-  const handleDownloadReport = async () => {
-    setDownloading(true);
-    try {
-      if (!isClient) {
-        alert("Excel export only supported in browser.");
-        return;
-      }
+// Replace the handleDownloadReport function with this updated version:
 
-      let ExcelJS: any = null;
-      try {
-        ExcelJS = (await import("exceljs")).default;
-        if (!ExcelJS) {
-          throw new Error();
-        }
-      } catch (_) {
-        alert(
-          "Excel report download is not available because the 'exceljs' library could not be loaded on the client." +
-          "\n\nPlease ensure 'exceljs' is installed with:\n\nnpm install exceljs\n\n" +
-          "Reload the page after installing."
-        );
-        setDownloading(false);
-        return;
-      }
-
-      const allDates = getAllDatesOfMonth(year_number, month_number);
-
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet(`Attendance ${selectedMonth}`);
-
-      const header: any[] = ["Name"];
-      allDates.forEach((date) => {
-        header.push(
-          `${date} - Entry Time`,
-          `${date} - Exit Time`,
-          `${date} - Late Count`,
-          `${date} - Absent Count`,
-          `${date} - Present Count`
-        );
-      });
-      worksheet.addRow(header);
-
-      employees.forEach((emp: any) => {
-        const row: any[] = [emp.name];
-
-        const attDetailsRaw =
-          emp.raw?.attendance_details ||
-          emp.raw?.attendence_details || // typo in some backends
-          emp.raw?.attendence_detail ||
-          [];
-
-        let dayMap: Record<string, any> = {};
-
-        if (Array.isArray(attDetailsRaw)) {
-          for (const item of attDetailsRaw) {
-            const itemDate = item.date
-              ? item.date.split("T")[0]
-              : null;
-            if (itemDate) {
-              dayMap[itemDate] = item;
-            }
-          }
-        } else if (typeof attDetailsRaw === "object" && attDetailsRaw !== null) {
-          dayMap = attDetailsRaw;
-        }
-
-        allDates.forEach((date) => {
-          const det = dayMap[date] || {};
-          let entry = det.entry_time || det.in_time || "";
-          let exit = det.exit_time || det.out_time || "";
-          let late = det.late_count ?? det.is_late ?? det.late ?? "";
-          if (late === true) late = 1;
-          if (late === false) late = 0;
-          let absent = det.absent_count ?? det.is_absent ?? det.absent ?? "";
-          if (absent === true) absent = 1;
-          if (absent === false) absent = 0;
-          let present = det.present_count ?? det.is_present ?? det.present ?? "";
-          if (present === true) present = 1;
-          if (present === false) present = 0;
-          if (late === "" && typeof det.status === "string")
-            late = det.status.toLowerCase() === "late" ? 1 : 0;
-          if (present === "" && typeof det.status === "string")
-            present = det.status.toLowerCase() === "present" ? 1 : 0;
-          if (absent === "" && typeof det.status === "string")
-            absent = det.status.toLowerCase() === "absent" ? 1 : 0;
-          row.push(entry, exit, late, absent, present);
-        });
-        worksheet.addRow(row);
-      });
-
-      worksheet.getRow(1).font = { bold: true };
-      worksheet.columns.forEach((col) => {
-        col.width = 16;
-      });
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `attendance_report_${selectedMonth}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (err) {
-      alert("Error downloading Excel report. " + (err instanceof Error ? err.message : ""));
-      // Only log the error if 'console' exists (should always in browser)
-      if (typeof console !== "undefined") {
-        console.error(err);
-      }
-    } finally {
-      setDownloading(false);
+const handleDownloadReport = async () => {
+  setDownloading(true);
+  try {
+    if (!isClient) {
+      alert("Excel export only supported in browser.");
+      return;
     }
-  };
+
+    let ExcelJS: any = null;
+    try {
+      ExcelJS = (await import("exceljs")).default;
+      if (!ExcelJS) {
+        throw new Error();
+      }
+    } catch (_) {
+      alert(
+        "Excel report download is not available because the 'exceljs' library could not be loaded on the client." +
+        "\n\nPlease ensure 'exceljs' is installed with:\n\nnpm install exceljs\n\n" +
+        "Reload the page after installing."
+      );
+      setDownloading(false);
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(`Attendance Report`);
+
+    // Create header: Column 1 is employee_name, then for selected month: late_count, absent_count, present_count
+    const monthName = new Date(selectedMonth).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+
+    const header: any[] = ["Employee Name"];
+    header.push(`${monthName} - Late Count`);
+    header.push(`${monthName} - Absent Count`);
+    header.push(`${monthName} - Present Count`);
+
+    worksheet.addRow(header);
+
+    // Add employee data rows
+    employees.forEach((emp: any) => {
+      const row: any[] = [emp.name];
+      row.push(emp.late);
+      row.push(emp.absent);
+      row.push(emp.present);
+      worksheet.addRow(row);
+    });
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF4472C4" },
+    };
+    worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+    // Set column widths
+    worksheet.columns = [
+      { width: 25 },
+      { width: 18 },
+      { width: 18 },
+      { width: 18 },
+    ];
+
+    // Center align data columns
+    for (let row = 2; row <= employees.length + 1; row++) {
+      for (let col = 2; col <= 4; col++) {
+        worksheet.getCell(row, col).alignment = { horizontal: "center" };
+      }
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `attendance_report_${selectedMonth}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (err) {
+    alert("Error downloading Excel report. " + (err instanceof Error ? err.message : ""));
+    if (typeof console !== "undefined") {
+      console.error(err);
+    }
+  } finally {
+    setDownloading(false);
+  }
+};
 
   if (loading) return <div className="text-center py-8 dark:text-gray-200">Loading...</div>;
   if (error) return <div className="text-center py-8 text-red-500">Error: {error}</div>;

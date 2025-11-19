@@ -49,6 +49,8 @@ interface AttendanceRecord {
   attendance_status: string | null;
   // Now add the date_wise_status (optional for backward compatibility)
   date_wise_status?: DateWiseStatus[];
+  // We assume late_remark can be on the main record as well - reflect here:
+  late_remark?: string | null;
 }
 
 export default function AttendancePage() {
@@ -266,7 +268,7 @@ export default function AttendancePage() {
 
     sortedData.forEach(row => {
       const empName = row.employee_name || 'Unknown Employee';
-      
+
       if (!groupedData[empName]) {
         groupedData[empName] = {
           name: empName,
@@ -310,12 +312,12 @@ export default function AttendancePage() {
 
     // Create export data with dynamic columns for each date
     const exportData: any[] = [];
-    
+
     Object.values(groupedData).forEach(emp => {
       const rowData: any = {
         "Name": emp.name
       };
-      
+
       sortedDates.forEach(date => {
         if (emp.dates[date]) {
           rowData[`${date} - Entry`] = emp.dates[date].entry;
@@ -325,7 +327,7 @@ export default function AttendancePage() {
           rowData[`${date} - Exit`] = "";
         }
       });
-      
+
       exportData.push(rowData);
     });
 
@@ -548,6 +550,9 @@ export default function AttendancePage() {
                           <ArrowUpDown className="ml-2 h-4 w-4" />
                         </Button>
                       </TableHead>
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">
+                        Late Remark
+                      </TableHead>
                       <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">Location</TableHead>
                       {/* date_wise_status Show/Hide button */}
                       <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">
@@ -558,7 +563,7 @@ export default function AttendancePage() {
                   <TableBody>
                     {currentItems.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="h-24 text-center text-gray-500 dark:text-gray-400">
+                        <TableCell colSpan={9} className="h-24 text-center text-gray-500 dark:text-gray-400">
                           <div className="flex flex-col items-center justify-center space-y-2">
                             <User className="h-12 w-12 text-gray-300 dark:text-gray-600" />
                             <span className="text-lg font-medium">No attendance records found</span>
@@ -674,6 +679,13 @@ export default function AttendancePage() {
                                     </Badge>
                                   )}
                                 </TableCell>
+                                <TableCell className="py-3 px-4 min-w-[120px] transition-all duration-200">
+                                  {/* Main table "Late Remark" column */}
+                                  {row.late_remark
+                                    ? <span className="text-xs text-gray-700 dark:text-gray-300">{row.late_remark}</span>
+                                    : <span className="text-gray-400 dark:text-gray-600">—</span>
+                                  }
+                                </TableCell>
                                 <TableCell className="py-3 px-4 min-w-[100px] transition-all duration-200">
                                   {location ? (
                                     <Button
@@ -710,7 +722,7 @@ export default function AttendancePage() {
                               {/* Expanded date_wise_status panel */}
                               {row.date_wise_status && row.date_wise_status.length > 0 && expandedRows[expandKey] && (
                                 <TableRow className="bg-blue-50/30 dark:bg-blue-900/20">
-                                  <TableCell colSpan={8} className="p-4 pt-2 pb-4 transition">
+                                  <TableCell colSpan={9} className="p-4 pt-2 pb-4 transition">
                                     <div>
                                       <h4 className="font-semibold mb-2 text-blue-700 dark:text-blue-300 text-sm flex items-center gap-2">
                                         <Calendar className="h-4 w-4" /> All Dates Attendance Status
