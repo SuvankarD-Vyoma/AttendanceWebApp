@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { z } from "zod"
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Toaster } from "@/components/ui/sonner"
+// REMOVE this Toaster import because it's already provided by the root layout!
 import { toast } from "sonner"
 import { loginApi } from "./api"
 import { setCookie } from "cookies-next"
@@ -41,87 +41,93 @@ export default function LoginPage() {
 
   const Base_Url = process.env.NEXT_PUBLIC_API_URL
 
-  async function onSubmit(data: LoginFormValues) {
-    setIsLoading(true);
-    try {
-      // ✅ Step 1: Dynamically generate Basic Auth header
-      const credentials = `${data.username}:${data.password}`;
-      const encodedCredentials = btoa(credentials); // Base64 encode username:password
+  // useCallback is not strictly necessary but avoids recreation
+  const onSubmit = useCallback(
+    async (data: LoginFormValues) => {
+      setIsLoading(true);
+      try {
+        // ✅ Step 1: Dynamically generate Basic Auth header
+        const credentials = `${data.username}:${data.password}`;
+        const encodedCredentials = btoa(credentials); // Base64 encode username:password
 
-      const tokenResponse = await fetch(
-        `http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Basic ${encodedCredentials}`,
-            "Content-Type": "application/json",
-          },
-          body: "",
+        const tokenResponse = await fetch(
+          `http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Basic ${encodedCredentials}`,
+              "Content-Type": "application/json",
+            },
+            body: "",
+          }
+        );
+
+        if (!tokenResponse.ok) {
+          let message = "Failed to generate token";
+          try {
+            const errJson = await tokenResponse.json();
+            if (errJson?.message) message = errJson.message;
+          } catch {}
+          throw new Error(message);
         }
-      );
 
-      if (!tokenResponse.ok) {
-        let message = "Failed to generate token";
-        try {
-          const errJson = await tokenResponse.json();
-          if (errJson?.message) message = errJson.message;
-        } catch {}
-        throw new Error(message);
-      }
+        const tokenData = await tokenResponse.json();
+        const token = tokenData?.data?.access_token;
 
-      const tokenData = await tokenResponse.json();
-      const token = tokenData?.data?.access_token;
-      
-      if (!token) {
-        throw new Error("Token missing in authentication response. Please try again later.");
-      }
+        if (!token) {
+          throw new Error("Token missing in authentication response. Please try again later.");
+        }
 
-      // ✅ Save token in cookies
-      setCookie("token", token);
+        // ✅ Save token in cookies
+        setCookie("token", token);
 
-      // ✅ Step 2: Use loginApi for user authentication
-      const result = await loginApi({
-        username: data.username,
-        password: data.password,
-        authToken: token,
-        url: `${Base_Url}user/authentication`,
-      });
-
-      const authData = result;
-
-      if (authData.data && (authData.data.userrole === "HR" || authData.data.userrole === "ADMIN")) {
-        document.cookie = `admin_Id=${encodeURIComponent(authData.data.admin_id)};max-age=${60 * 60 * 24}`;
-        document.cookie = `username=${encodeURIComponent(authData.data.username)};max-age=${60 * 60 * 24}`;
-        document.cookie = `userRole=${encodeURIComponent(authData.data.userrole)};max-age=${60 * 60 * 24}`;
-        document.cookie = `userFullName=${encodeURIComponent(authData.data.userfullname)};max-age=${60 * 60 * 24}`;
-        document.cookie = `password=${encodeURIComponent(data.password)};max-age=${60 * 60 * 24}`;
-
-        toast.success("Login successful", {
-          description: `Welcome, ${authData.data.userfullname}`,
+        // ✅ Step 2: Use loginApi for user authentication
+        const result = await loginApi({
+          username: data.username,
+          password: data.password,
+          authToken: token,
+          url: `${Base_Url}user/authentication`,
         });
 
-        router.push("/dashboard");
-      } else {
-        toast.error("Access denied", {
-          description: "You don't have permission to access this system.",
-        });
-      }
-    } catch (error: any) {
-      console.error("Login error:", error);
-      toast.error("Login failed", {
-        description:
-          typeof error === "object" && error?.message
-            ? error.message
-            : "Invalid credentials or server error. Please try again.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }
+        const authData = result;
 
+        if (authData.data && (authData.data.userrole === "HR" || authData.data.userrole === "ADMIN")) {
+          document.cookie = `admin_Id=${encodeURIComponent(authData.data.admin_id)};max-age=${60 * 60 * 24}`;
+          document.cookie = `username=${encodeURIComponent(authData.data.username)};max-age=${60 * 60 * 24}`;
+          document.cookie = `userRole=${encodeURIComponent(authData.data.userrole)};max-age=${60 * 60 * 24}`;
+          document.cookie = `userFullName=${encodeURIComponent(authData.data.userfullname)};max-age=${60 * 60 * 24}`;
+          document.cookie = `password=${encodeURIComponent(data.password)};max-age=${60 * 60 * 24}`;
+
+          // 🍞 This is fine because it's a post-interaction effect, but NOT in render!
+          toast.success("Login successful", {
+            description: `Welcome, ${authData.data.userfullname}`,
+          });
+
+          router.push("/dashboard");
+        } else {
+          toast.error("Access denied", {
+            description: "You don't have permission to access this system.",
+          });
+        }
+      } catch (error: any) {
+        console.error("Login error:", error);
+        toast.error("Login failed", {
+          description:
+            typeof error === "object" && error?.message
+              ? error.message
+              : "Invalid credentials or server error. Please try again.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [Base_Url, router]
+  );
+
+  // EXPLICIT: Remove <Toaster /> here, let the root layout show it instead
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 flex items-center justify-center p-4">
-      <Toaster />
+      {/* <Toaster /> -- REMOVE, avoid duplicate Toaster mount */}
       <div className="grid w-full lg:grid-cols-2 gap-8 max-w-5xl">
         <div className="hidden lg:flex flex-col justify-center p-8">
           <div className="flex items-center mb-8">

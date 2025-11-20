@@ -96,9 +96,15 @@ export default function MainSidebar({ isOpen, onToggle }: MainSidebarProps) {
     { icon: Users, label: "Employees", href: "/employees" },
     { icon: Clock, label: "Attendance", href: "/attendance" },
     { icon: Calendar, label: "Leave Management", href: "/leave" },
-    // { icon: Map, label: "Location Tracking", href: "/location" },
-    { icon: FileText, label: "Reports", href: "/reports" },
-    // { icon: Settings, label: "Settings", href: "/settings" },
+    {
+      icon: FileText,
+      label: "Reports",
+      href: "/reports",
+      dropdown: [
+        { label: "Summary", href: "/reports" },
+        { label: "Entry/Exit Time", href: "/reports/entry-exitTime" }
+      ]
+    },
   ];
 
   return (
