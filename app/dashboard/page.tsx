@@ -39,7 +39,7 @@ function AttendanceBarChartOverride() {
         const encoded = typeof window !== "undefined" ? window.btoa(credentials) : "";
 
         const tokenRes = await fetch(
-          `https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`,
+          `http://115.187.62.16:8005/VYOMAUMSRestAPI/api/auth/generateToken`,
           {
             method: "POST",
             headers: {
@@ -69,7 +69,7 @@ function AttendanceBarChartOverride() {
         });
 
         const response = await fetch(
-          "https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAdminDashboardDetailsv1",
+          "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAdminDashboardDetailsv1",
           { method: "POST", headers: myHeaders, body: raw }
         );
 
@@ -169,7 +169,7 @@ export default function DashboardPage() {
         const encoded = typeof window !== "undefined" ? window.btoa(credentials) : "";
 
         const tokenRes = await fetch(
-          `https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`,
+          `http://115.187.62.16:8005/VYOMAUMSRestAPI/api/auth/generateToken`,
           {
             method: "POST",
             headers: {
@@ -187,7 +187,7 @@ export default function DashboardPage() {
         const today = dayjs().format("DD-MM-YYYY");
 
         const res = await fetch(
-          "https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAdminDashboardDetailsv1",
+          "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAdminDashboardDetailsv1",
           {
             method: "POST",
             headers: {

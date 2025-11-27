@@ -131,7 +131,7 @@ export default function EmployeesPage() {
           redirect: "follow"
         };
         const response = await fetch(
-          "http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getEmployeeDetailsList",
+          "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getEmployeeDetailsList",
           requestOptions
         );
         if (!response.ok) {

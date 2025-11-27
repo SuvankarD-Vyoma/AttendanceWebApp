@@ -13,7 +13,7 @@ export async function getAttendenceSummaryDetails(
     year_number,
   });
 
-  const response = await fetch("http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAttendenceSummaryDetails", {
+  const response = await fetch("http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAttendenceSummaryDetails", {
     method: "POST",
     headers: {
       "accept": "*/*",

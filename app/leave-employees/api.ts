@@ -14,7 +14,7 @@ export async function getEmployeeLeaveListByDate({
   org_id = 1,
   from_date,
   to_date,
-  apiUrl = "http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getEmployeeLeaveListByDate",
+  apiUrl = "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getEmployeeLeaveListByDate",
   token,
 }: LeaveEmployeeListParams) {
     const bearerToken = token || getCookie("token") || "";

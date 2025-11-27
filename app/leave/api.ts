@@ -4,7 +4,7 @@ const token = getCookie("token") || "";
 
 export async function getLeaveRequestsByAdmin(admin_id: string) {
     try {
-        const response = await fetch('http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getLeaveRequestsByAdmin', {
+        const response = await fetch('http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getLeaveRequestsByAdmin', {
             method: 'POST',
             headers: {
                 'accept': '*/*',

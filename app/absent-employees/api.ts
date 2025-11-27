@@ -18,7 +18,7 @@ export async function getAbsentEmployeeList({
   org_id = 1,
   from_date,
   to_date,
-  apiUrl = "http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAbsentEmployeeList",
+  apiUrl = "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAbsentEmployeeList",
   token,
 }: AbsentEmployeeListParams) {
   const bearerToken = token || getCookie("token") || "";

@@ -6,7 +6,7 @@ export async function getAdminAttendanceInfo({
   to_date,
   page_no = 0,
   page_size = 0,
-  apiUrl = "http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAdminAttendanceInfo"
+  apiUrl = "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAdminAttendanceInfo"
 }: {
   token: string;
   admin_id: string;

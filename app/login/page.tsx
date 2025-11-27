@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-// REMOVE this Toaster import because it's already provided by the root layout!
 import { toast } from "sonner"
 import { loginApi } from "./api"
 import { setCookie } from "cookies-next"
@@ -51,7 +50,7 @@ export default function LoginPage() {
         const encodedCredentials = btoa(credentials); // Base64 encode username:password
 
         const tokenResponse = await fetch(
-          `http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/auth/generateToken`,
+          `http://115.187.62.16:8005/VYOMAUMSRestAPI/api/auth/generateToken`,
           {
             method: "POST",
             headers: {
@@ -67,7 +66,7 @@ export default function LoginPage() {
           try {
             const errJson = await tokenResponse.json();
             if (errJson?.message) message = errJson.message;
-          } catch {}
+          } catch { }
           throw new Error(message);
         }
 

@@ -84,7 +84,7 @@ export default function LeaveManagementPage() {
             const raw = JSON.stringify({ admin_id: decodedadmin_Id });
 
             const response = await fetch(
-                "http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getLeaveRequestsByAdmin",
+                "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getLeaveRequestsByAdmin",
                 { method: "POST", headers: myHeaders, body: raw }
             );
 
@@ -182,7 +182,7 @@ export default function LeaveManagementPage() {
 
         try {
             const response = await fetch(
-                "https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/approvalOfEmployeeLeaveRequestByAdmin",
+                "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/approvalOfEmployeeLeaveRequestByAdmin",
                 { method: "POST", headers: myHeaders, body: JSON.stringify(payload) }
             );
 

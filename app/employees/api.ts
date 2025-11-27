@@ -21,7 +21,7 @@ export const getEmployeeList = async (encryptedUserId: string) => {
     // Show the decrypted value (console or return — here, print it)
     console.log("Decrypted User ID:", decryptedUserId);
 
-    const res = await fetch("https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getEmployeeList", {
+    const res = await fetch("http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getEmployeeList", {
         method: "POST",
         headers: {
             "accept": "*/*",
@@ -40,7 +40,7 @@ export const getEmployeeList = async (encryptedUserId: string) => {
 
 export async function getUserDetailsByUserID(user_id: string) {
     const token = getCookie("token") || "";
-    const response = await fetch('http://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/user/getUserDetailsByUserID', {
+    const response = await fetch('http://115.187.62.16:8005/VYOMAUMSRestAPI/api/user/getUserDetailsByUserID', {
       method: 'POST',
       headers: {
         'accept': '*/*',

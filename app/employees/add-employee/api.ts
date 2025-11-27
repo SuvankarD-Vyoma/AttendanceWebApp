@@ -3,7 +3,7 @@ import { getCookie } from "cookies-next";
 export async function saveEmployee(payload: any) {
   const token = getCookie("token") || "";
 
-  const res = await fetch("https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/saveEmployeeInfo", {
+  const res = await fetch("http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/saveEmployeeInfo", {
     method: "POST",
     headers: {
       "accept": "*/*",
@@ -20,7 +20,7 @@ export async function saveEmployee(payload: any) {
 
 export async function getAllBloodGroup() {
   const token = getCookie("token") || "";
-  const res = await fetch("https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAllBloodGroup", {
+  const res = await fetch("http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAllBloodGroup", {
     method: "POST",
     headers: {
       "accept": "*/*",
@@ -36,7 +36,7 @@ export async function getAllBloodGroup() {
 
 export const getAllGender = async ()=>{
   const token = getCookie("token") || "";
-  const res = await fetch("https://wbassetmgmtservice.link/VYOMAUMSRestAPI/api/admin/getAllGender", {
+  const res = await fetch("http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAllGender", {
     method: "POST",
     headers: {
       "accept": "*/*",
