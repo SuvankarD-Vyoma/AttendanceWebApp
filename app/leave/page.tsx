@@ -22,6 +22,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getEmployeeAvailableLeaveList } from "./api";
+
+interface EmployeeLeaveBalance {
+    employee_id: string;
+    employee_name: string;
+    available_sl: number;
+    available_cl: number;
+    available_pl: number;
+    total_leave: number;
+    remaining_leave: number;
+}
 
 interface LeaveRequest {
     employee_id: string;
@@ -48,6 +60,29 @@ export default function LeaveManagementPage() {
     const [sortColumn, setSortColumn] = useState<keyof LeaveRequest>('applied_date');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const itemsPerPage = 10;
+    const [leaveBalances, setLeaveBalances] = useState<EmployeeLeaveBalance[]>([]);
+    const [loadingBalances, setLoadingBalances] = useState(false);
+
+    const fetchLeaveBalances = async () => {
+        try {
+            setLoadingBalances(true);
+            const admin_Id = getCookie("admin_Id");
+            if (!admin_Id) return;
+            const decodedadmin_Id = decodeURIComponent(admin_Id as string);
+            const result = await getEmployeeAvailableLeaveList(decodedadmin_Id);
+            if (result && result.data) {
+                setLeaveBalances(result.data);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoadingBalances(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchLeaveBalances();
+    }, []);
 
     const [showRejectRemark, setShowRejectRemark] = useState<null | { employeeId: string, leaveRequestId?: string | number }>(null);
     const [rejectRemark, setRejectRemark] = useState<string>("");
@@ -443,148 +478,206 @@ export default function LeaveManagementPage() {
     }
 
     return (
-        <div className="space-y-6 bg-slate-50 dark:bg-black min-h-screen">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-end pt-6 gap-4 m-4">
-                <Input
-                    type="text"
-                    placeholder="Search employee..."
-                    value={search}
-                    onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                    className="w-full md:w-80 bg-white dark:bg-slate-900 dark:text-slate-100 border-slate-200 dark:border-zinc-800"
-                />
-            </div>
+        <div className="space-y-6 bg-slate-50 dark:bg-black min-h-screen p-4">
+            <Tabs defaultValue="requests" className="w-full space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <TabsList className="grid w-full md:w-[400px] grid-cols-2">
+                        <TabsTrigger value="requests">Leave Requests</TabsTrigger>
+                        <TabsTrigger value="balances">Leave Balances</TabsTrigger>
+                    </TabsList>
+                    <Input
+                        type="text"
+                        placeholder="Search employee..."
+                        value={search}
+                        onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                        className="w-full md:w-80 bg-white dark:bg-slate-900 dark:text-slate-100 border-slate-200 dark:border-zinc-800"
+                    />
+                </div>
 
-            <Card className="border-slate-200/80 shadow-lg m-4 bg-white/50 dark:bg-slate-900/70 dark:border-zinc-800 backdrop-blur-sm">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                        <Filter className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        Leave Requests
-                        <Badge variant="secondary" className="ml-2 bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-slate-200 dark:border-zinc-700">
-                            {filteredAndSortedRequests.length} records
-                        </Badge>
-                    </CardTitle>
-                </CardHeader>
+                <TabsContent value="requests">
+                    <Card className="border-slate-200/80 shadow-lg bg-white/50 dark:bg-slate-900/70 dark:border-zinc-800 backdrop-blur-sm">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                                <Filter className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                Leave Requests
+                                <Badge variant="secondary" className="ml-2 bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-slate-200 dark:border-zinc-700">
+                                    {filteredAndSortedRequests.length} records
+                                </Badge>
+                            </CardTitle>
+                        </CardHeader>
 
-                <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader className="bg-slate-100 dark:bg-black">
-                                <TableRow className="border-b-slate-200 dark:border-b-zinc-800">
-                                    <TableHead className="text-center">
-                                        <Button variant="ghost" onClick={() => handleSort('employee_name')} className="px-0 text-slate-800 dark:text-slate-300 mx-auto flex items-center justify-center">
-                                            Employee <ArrowUpDown className="ml-1 h-4 w-4" />
-                                        </Button>
-                                    </TableHead>
-                                    <TableHead className="text-center">Type</TableHead>
-                                    <TableHead className="text-center">Duration</TableHead>
-                                    <TableHead className="text-center">Days</TableHead>
-                                    <TableHead className="text-center">Reason</TableHead>
-                                    <TableHead className="text-center">Status</TableHead>
-                                    <TableHead className="text-center">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-slate-100 dark:bg-black">
+                                        <TableRow className="border-b-slate-200 dark:border-b-zinc-800">
+                                            <TableHead className="text-center">
+                                                <Button variant="ghost" onClick={() => handleSort('employee_name')} className="px-0 text-slate-800 dark:text-slate-300 mx-auto flex items-center justify-center">
+                                                    Employee <ArrowUpDown className="ml-1 h-4 w-4" />
+                                                </Button>
+                                            </TableHead>
+                                            <TableHead className="text-center">Type</TableHead>
+                                            <TableHead className="text-center">Duration</TableHead>
+                                            <TableHead className="text-center">Days</TableHead>
+                                            <TableHead className="text-center">Reason</TableHead>
+                                            <TableHead className="text-center">Status</TableHead>
+                                            <TableHead className="text-center">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
 
-                            <TableBody>
-                                {currentItems.length > 0 ? currentItems.map((req) => (
-                                    <TableRow key={req.leave_request_id || req.employee_id} className="border-b border-slate-200/80 dark:border-zinc-800 hover:bg-slate-100/50">
-                                        <TableCell className="text-center">
-                                            <div className="flex items-center gap-3 justify-center">
-                                                <Avatar className="h-10 w-10 border-2 border-white">
-                                                    <AvatarImage src="" alt={req.employee_name} />
-                                                    <AvatarFallback>{req.employee_name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                                                </Avatar>
-                                                <div className="text-left">
-                                                    <div className="font-medium">{req.employee_name}</div>
-                                                    <div className="text-xs text-slate-500">Applied: {req.applied_date}</div>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center">{req.leave_type_name}</TableCell>
-                                        <TableCell className="text-center">
-                                            <p>{formatFriendlyDate(req.leave_start_date)}</p>
-                                            <p className="text-xs text-slate-500">to</p>
-                                            <p>{formatFriendlyDate(req.leave_end_date)}</p>
-                                        </TableCell>
-                                        <TableCell className="text-center">{duration(req.leave_start_date, req.leave_end_date)} days</TableCell>
-                                        <TableCell className="text-center text-xs max-w-[200px]">
-                                            <div className="line-clamp-2 break-words">{req.reason_of_leave}</div>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <Badge variant="outline" className={`capitalize ${getStatusBadgeVariant(req.status)} text-xs flex items-center justify-center`}>
-                                                <div className={`w-2 h-2 rounded-full mr-1.5 ${getStatusDotColor(req.status)}`}></div>
-                                                {req.status.toLowerCase()}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            <div className="flex justify-center gap-1">
-                                                {req.status.toLowerCase() === 'pending' ? (
-                                                    <>
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button size="icon" variant="ghost" onClick={() => handleAction(req.employee_id, 'approve', req.leave_request_id)}>
-                                                                        <Check className="h-4 w-4 text-green-600" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent className="bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900">
-                                                                    Approve
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button size="icon" variant="ghost" onClick={() => handleAction(req.employee_id, 'reject', req.leave_request_id)}>
-                                                                        <X className="h-4 w-4 text-red-600" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent className="bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900">
-                                                                    Reject
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    </>
-                                                ) : (
-                                                    <span className="text-xs text-slate-500 italic">{req.status}</span>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                )) : (
-                                    <TableRow>
-                                        <TableCell colSpan={7} className="text-center h-32">
-                                            <div className="flex flex-col items-center justify-center gap-2">
-                                                <User className="h-10 w-10 text-slate-400" />
-                                                <span>No Leave Requests Found</span>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                    <TableBody>
+                                        {currentItems.length > 0 ? currentItems.map((req) => (
+                                            <TableRow key={req.leave_request_id || req.employee_id} className="border-b border-slate-200/80 dark:border-zinc-800 hover:bg-slate-100/50">
+                                                <TableCell className="text-center">
+                                                    <div className="flex items-center gap-3 justify-center">
+                                                        <Avatar className="h-10 w-10 border-2 border-white">
+                                                            <AvatarImage src="" alt={req.employee_name} />
+                                                            <AvatarFallback>{req.employee_name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div className="text-left">
+                                                            <div className="font-medium">{req.employee_name}</div>
+                                                            <div className="text-xs text-slate-500">Applied: {req.applied_date}</div>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-center">{req.leave_type_name}</TableCell>
+                                                <TableCell className="text-center">
+                                                    <p>{formatFriendlyDate(req.leave_start_date)}</p>
+                                                    <p className="text-xs text-slate-500">to</p>
+                                                    <p>{formatFriendlyDate(req.leave_end_date)}</p>
+                                                </TableCell>
+                                                <TableCell className="text-center">{duration(req.leave_start_date, req.leave_end_date)} days</TableCell>
+                                                <TableCell className="text-center text-xs max-w-[200px]">
+                                                    <div className="line-clamp-2 break-words">{req.reason_of_leave}</div>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Badge variant="outline" className={`capitalize ${getStatusBadgeVariant(req.status)} text-xs flex items-center justify-center`}>
+                                                        <div className={`w-2 h-2 rounded-full mr-1.5 ${getStatusDotColor(req.status)}`}></div>
+                                                        {req.status.toLowerCase()}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <div className="flex justify-center gap-1">
+                                                        {req.status.toLowerCase() === 'pending' ? (
+                                                            <>
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button size="icon" variant="ghost" onClick={() => handleAction(req.employee_id, 'approve', req.leave_request_id)}>
+                                                                                <Check className="h-4 w-4 text-green-600" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent className="bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900">
+                                                                            Approve
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                                <TooltipProvider>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button size="icon" variant="ghost" onClick={() => setShowRejectRemark({ employeeId: req.employee_id, leaveRequestId: req.leave_request_id })}>
+                                                                                <X className="h-4 w-4 text-red-600" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent className="bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900">
+                                                                            Reject
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-xs text-slate-500 italic">{req.status}</span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="text-center h-32">
+                                                    <div className="flex flex-col items-center justify-center gap-2">
+                                                        <User className="h-10 w-10 text-slate-400" />
+                                                        <span>No Leave Requests Found</span>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
 
-                    {totalPages > 1 && (
-                        <div className="flex justify-between items-center p-3 border-t border-slate-200/60">
-                            <div className="text-xs">Showing {startIndex + 1}–{Math.min(startIndex + itemsPerPage, filteredAndSortedRequests.length)} of {filteredAndSortedRequests.length}</div>
-                            <Pagination>
-                                <PaginationContent>
-                                    <PaginationItem>
-                                        <PaginationPrevious onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} className={currentPage === 1 ? 'opacity-50 pointer-events-none' : ''} />
-                                    </PaginationItem>
-                                    <PaginationItem>
-                                        <span className="px-3 text-xs">Page {currentPage} of {totalPages}</span>
-                                    </PaginationItem>
-                                    <PaginationItem>
-                                        <PaginationNext onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} className={currentPage === totalPages ? 'opacity-50 pointer-events-none' : ''} />
-                                    </PaginationItem>
-                                </PaginationContent>
-                            </Pagination>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                            {totalPages > 1 && (
+                                <div className="flex justify-between items-center p-3 border-t border-slate-200/60">
+                                    <div className="text-xs">Showing {startIndex + 1}–{Math.min(startIndex + itemsPerPage, filteredAndSortedRequests.length)} of {filteredAndSortedRequests.length}</div>
+                                    <Pagination>
+                                        <PaginationContent>
+                                            <PaginationItem>
+                                                <PaginationPrevious onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} className={currentPage === 1 ? 'opacity-50 pointer-events-none' : ''} />
+                                            </PaginationItem>
+                                            <PaginationItem>
+                                                <span className="px-3 text-xs">Page {currentPage} of {totalPages}</span>
+                                            </PaginationItem>
+                                            <PaginationItem>
+                                                <PaginationNext onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} className={currentPage === totalPages ? 'opacity-50 pointer-events-none' : ''} />
+                                            </PaginationItem>
+                                        </PaginationContent>
+                                    </Pagination>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
+                <TabsContent value="balances">
+                    <Card className="border-slate-200/80 shadow-lg bg-white/50 dark:bg-slate-900/70 dark:border-zinc-800 backdrop-blur-sm">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                                <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                Employee Leave Balances
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-slate-100 dark:bg-black">
+                                        <TableRow>
+                                            <TableHead>Employee Name</TableHead>
+                                            <TableHead className="text-center">SL</TableHead>
+                                            <TableHead className="text-center">CL</TableHead>
+                                            <TableHead className="text-center">PL</TableHead>
+                                            <TableHead className="text-center">Total</TableHead>
+                                            <TableHead className="text-center">Remaining</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {loadingBalances ? (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="text-center h-24">Loading balances...</TableCell>
+                                            </TableRow>
+                                        ) : leaveBalances.filter(emp => emp.employee_name.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
+                                            leaveBalances
+                                                .filter(emp => emp.employee_name.toLowerCase().includes(search.toLowerCase()))
+                                                .map((emp) => (
+                                                    <TableRow key={emp.employee_id}>
+                                                        <TableCell className="font-medium">{emp.employee_name}</TableCell>
+                                                        <TableCell className="text-center">{emp.available_sl}</TableCell>
+                                                        <TableCell className="text-center">{emp.available_cl}</TableCell>
+                                                        <TableCell className="text-center">{emp.available_pl}</TableCell>
+                                                        <TableCell className="text-center font-bold">{emp.total_leave}</TableCell>
+                                                        <TableCell className="text-center text-green-600 font-bold">{emp.remaining_leave}</TableCell>
+                                                    </TableRow>
+                                                ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="text-center h-24">No data found</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
             {renderRejectModal()}
         </div>
     );
