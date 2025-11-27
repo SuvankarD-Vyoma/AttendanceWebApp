@@ -9,7 +9,7 @@ export async function getLeaveRequestsByAdmin(admin_id: string) {
             headers: {
                 'accept': '*/*',
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` // Token should be managed securely
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
                 admin_id

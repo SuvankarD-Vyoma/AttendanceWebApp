@@ -506,7 +506,9 @@ export default function LeaveManagementPage() {
                                             <p>{formatFriendlyDate(req.leave_end_date)}</p>
                                         </TableCell>
                                         <TableCell className="text-center">{duration(req.leave_start_date, req.leave_end_date)} days</TableCell>
-                                        <TableCell className="text-center text-xs truncate max-w-[120px]">{req.reason_of_leave}</TableCell>
+                                        <TableCell className="text-center text-xs max-w-[200px]">
+                                            <div className="line-clamp-2 break-words">{req.reason_of_leave}</div>
+                                        </TableCell>
                                         <TableCell className="text-center">
                                             <Badge variant="outline" className={`capitalize ${getStatusBadgeVariant(req.status)} text-xs flex items-center justify-center`}>
                                                 <div className={`w-2 h-2 rounded-full mr-1.5 ${getStatusDotColor(req.status)}`}></div>
@@ -515,7 +517,6 @@ export default function LeaveManagementPage() {
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <div className="flex justify-center gap-1">
-                                                {/* Only show action buttons if status is pending */}
                                                 {req.status.toLowerCase() === 'pending' ? (
                                                     <>
                                                         <TooltipProvider>
