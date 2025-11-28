@@ -1,9 +1,10 @@
 import { getCookie } from "cookies-next";
+import { getApiBaseUrl } from "@/lib/api-config";
 
 export async function saveEmployee(payload: any) {
   const token = getCookie("token") || "";
 
-  const res = await fetch("http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/saveEmployeeInfo", {
+  const res = await fetch(`${getApiBaseUrl()}admin/saveEmployeeInfo`, {
     method: "POST",
     headers: {
       "accept": "*/*",
@@ -20,8 +21,8 @@ export async function saveEmployee(payload: any) {
 
 export async function getAllBloodGroup() {
   const token = getCookie("token") || "";
-  const res = await fetch("http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAllBloodGroup", {
-    method: "POST",
+  const res = await fetch(`${getApiBaseUrl()}admin/getAllBloodGroup`, {
+    method: "POST", 
     headers: {
       "accept": "*/*",
       "Authorization": `Bearer ${token}`,
@@ -36,7 +37,7 @@ export async function getAllBloodGroup() {
 
 export const getAllGender = async ()=>{
   const token = getCookie("token") || "";
-  const res = await fetch("http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAllGender", {
+  const res = await fetch(`${getApiBaseUrl()}admin/getAllGender`, {
     method: "POST",
     headers: {
       "accept": "*/*",

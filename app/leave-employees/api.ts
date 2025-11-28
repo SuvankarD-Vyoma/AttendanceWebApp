@@ -1,4 +1,5 @@
 import { getCookie } from "cookies-next";
+import { getApiBaseUrl } from "@/lib/api-config";
 
 export interface LeaveEmployeeListParams {
   admin_id: string;
@@ -14,7 +15,7 @@ export async function getEmployeeLeaveListByDate({
   org_id = 1,
   from_date,
   to_date,
-  apiUrl = "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getEmployeeLeaveListByDate",
+  apiUrl = `${getApiBaseUrl()}admin/getEmployeeLeaveListByDate`,
   token,
 }: LeaveEmployeeListParams) {
     const bearerToken = token || getCookie("token") || "";

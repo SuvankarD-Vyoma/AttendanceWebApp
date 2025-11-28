@@ -1,11 +1,12 @@
 import { getCookie } from "cookies-next";
+import { getApiBaseUrl } from "@/lib/api-config";
 
 
 
 export async function getLeaveRequestsByAdmin(admin_id: string) {
     try {
         const token = getCookie("token") || "";
-        const response = await fetch('http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getLeaveRequestsByAdmin', {
+        const response = await fetch(`${getApiBaseUrl()}admin/getLeaveRequestsByAdmin`, {
             method: 'POST',
             headers: {
                 'accept': '*/*',
@@ -31,7 +32,7 @@ export async function getLeaveRequestsByAdmin(admin_id: string) {
 export async function approvalOfEmployeeLeaveRequestByAdmin(payload: any) {
     try {
         const token = getCookie("token") || "";
-        const response = await fetch("http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/approvalOfEmployeeLeaveRequestByAdmin", {
+        const response = await fetch(`${getApiBaseUrl()}admin/approvalOfEmployeeLeaveRequestByAdmin`, {
             method: "POST",
             headers: {
                 'accept': '*/*',
@@ -79,7 +80,7 @@ export async function getEmployeeAvailableLeaveList(admin_id: string) {
             redirect: "follow" as RequestRedirect
         };
 
-        const response = await fetch("http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getEmployeeAvailableLeaveList", requestOptions);
+        const response = await fetch(`${getApiBaseUrl()}admin/getEmployeeAvailableLeaveList`, requestOptions);
 
         if (!response.ok) {
             throw new Error('Failed to fetch employee available leave list');

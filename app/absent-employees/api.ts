@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from "@/lib/api-config";
 import { getCookie } from "cookies-next";
 
 export interface AbsentEmployeeListParams {
@@ -10,15 +11,12 @@ export interface AbsentEmployeeListParams {
   [key: string]: any;
 }
 
-/**
- * Fetch the absent employee list. All fields in the payload and API/Token are dynamic.
- */
 export async function getAbsentEmployeeList({
   admin_id,
   org_id = 1,
   from_date,
   to_date,
-  apiUrl = "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAbsentEmployeeList",
+  apiUrl = `${getApiBaseUrl()}admin/getAbsentEmployeeList`, 
   token,
 }: AbsentEmployeeListParams) {
   const bearerToken = token || getCookie("token") || "";

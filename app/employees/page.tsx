@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import CryptoJS from 'crypto-js';
+import { getApiBaseUrl } from "@/lib/api-config";
 
 const decryptData = (encryptedText: string): string => {
   // If empty, return early
@@ -131,7 +132,7 @@ export default function EmployeesPage() {
           redirect: "follow"
         };
         const response = await fetch(
-          "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getEmployeeDetailsList",
+          `${getApiBaseUrl()}admin/getEmployeeDetailsList`,
           requestOptions
         );
         if (!response.ok) {

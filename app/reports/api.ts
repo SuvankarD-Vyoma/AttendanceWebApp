@@ -1,4 +1,5 @@
 import { getCookie } from "cookies-next";
+import { getApiBaseUrl } from "@/lib/api-config";
 
 export async function getAttendenceSummaryDetails(
   admin_id: string,
@@ -13,7 +14,7 @@ export async function getAttendenceSummaryDetails(
     year_number,
   });
 
-  const response = await fetch("http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAttendenceSummaryDetails", {
+  const response = await fetch(`${getApiBaseUrl()}admin/getAttendenceSummaryDetails`, {
     method: "POST",
     headers: {
       "accept": "*/*",

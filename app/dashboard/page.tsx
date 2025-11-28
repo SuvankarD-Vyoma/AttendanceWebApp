@@ -6,6 +6,7 @@ import DashboardStatCard from "@/components/dashboard/dashboard-stat-card";
 import { EmployeeStatus } from "@/lib/types";
 import Link from "next/link";
 import { getCookie } from "cookies-next";
+import { getApiBaseUrl } from "@/lib/api-config"; 
 import dayjs from "dayjs";
 import {
   BarChart,
@@ -39,7 +40,7 @@ function AttendanceBarChartOverride() {
         const encoded = typeof window !== "undefined" ? window.btoa(credentials) : "";
 
         const tokenRes = await fetch(
-          `http://115.187.62.16:8005/VYOMAUMSRestAPI/api/auth/generateToken`,
+          `${getApiBaseUrl()}auth/generateToken`,
           {
             method: "POST",
             headers: {
@@ -69,7 +70,7 @@ function AttendanceBarChartOverride() {
         });
 
         const response = await fetch(
-          "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAdminDashboardDetailsv1",
+          `${getApiBaseUrl()}admin/getAdminDashboardDetailsv1`,
           { method: "POST", headers: myHeaders, body: raw }
         );
 
@@ -169,7 +170,7 @@ export default function DashboardPage() {
         const encoded = typeof window !== "undefined" ? window.btoa(credentials) : "";
 
         const tokenRes = await fetch(
-          `http://115.187.62.16:8005/VYOMAUMSRestAPI/api/auth/generateToken`,
+          `${getApiBaseUrl()}auth/generateToken`,
           {
             method: "POST",
             headers: {
@@ -187,7 +188,7 @@ export default function DashboardPage() {
         const today = dayjs().format("DD-MM-YYYY");
 
         const res = await fetch(
-          "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAdminDashboardDetailsv1",
+          `${getApiBaseUrl()}admin/getAdminDashboardDetailsv1`,
           {
             method: "POST",
             headers: {

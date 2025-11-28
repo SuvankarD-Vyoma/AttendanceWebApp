@@ -1,6 +1,7 @@
 // Fetch attendance info from API
+import { getApiBaseUrl } from "@/lib/api-config";
 export async function getAdminAttendanceInfo(token: string, admin_id: string, from_date: string, to_date: string) {
-  const res = await fetch("http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAdminAttendanceInfo", {
+  const res = await fetch(`${getApiBaseUrl()}admin/getAdminAttendanceInfo`, {
     method: "POST",
     headers: {
       "accept": "*/*",

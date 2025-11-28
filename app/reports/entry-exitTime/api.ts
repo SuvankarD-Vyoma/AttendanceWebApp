@@ -1,3 +1,5 @@
+import { getApiBaseUrl } from "@/lib/api-config";
+
 export async function getAdminAttendanceInfo({
     token,
     admin_id,
@@ -6,7 +8,7 @@ export async function getAdminAttendanceInfo({
     to_date,
     page_no = 0,
     page_size = 0,
-    apiUrl = "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getAdminAttendanceInfo"
+    apiUrl = `${getApiBaseUrl()}admin/getAdminAttendanceInfo`
   }: {
     token: string;
     admin_id: string;

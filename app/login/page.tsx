@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner"
 import { loginApi } from "./api"
 import { setCookie } from "cookies-next"
+import { getApiBaseUrl } from "@/lib/api-config"
 
 const loginFormSchema = z.object({
   username: z.string().min(1, { message: "Username is required" }),
@@ -50,7 +51,7 @@ export default function LoginPage() {
         const encodedCredentials = btoa(credentials); // Base64 encode username:password
 
         const tokenResponse = await fetch(
-          `http://115.187.62.16:8005/VYOMAUMSRestAPI/api/auth/generateToken`,
+          `${getApiBaseUrl()}auth/generateToken`,
           {
             method: "POST",
             headers: {
