@@ -23,7 +23,10 @@ import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getEmployeeAvailableLeaveList } from "./api";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getEmployeeAvailableLeaveList, getLeaveRequestsByAdmin, approvalOfEmployeeLeaveRequestByAdmin } from "./api";
 
 interface EmployeeLeaveBalance {
     employee_id: string;
@@ -99,34 +102,17 @@ export default function LeaveManagementPage() {
             default: return 'Unknown';
         }
     };
-
     const fetchLeaveRequests = async () => {
         try {
             setLoading(true);
             setError(null);
 
-            const token = getCookie("token") || "";
             const admin_Id = getCookie("admin_Id");
             if (!admin_Id) throw new Error("User ID not found in cookies");
 
             const decodedadmin_Id = decodeURIComponent(admin_Id as string);
 
-            const myHeaders = new Headers();
-            myHeaders.append("accept", "*/*");
-            myHeaders.append("Content-Type", "application/json");
-            myHeaders.append("Authorization", `Bearer ${token}`);
-
-            const raw = JSON.stringify({ admin_id: decodedadmin_Id });
-
-            const response = await fetch(
-                "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/getLeaveRequestsByAdmin",
-                { method: "POST", headers: myHeaders, body: raw }
-            );
-
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-
-            const resultText = await response.text();
-            const result = JSON.parse(resultText);
+            const result = await getLeaveRequestsByAdmin(decodedadmin_Id);
 
             let leaveList: any[] = [];
             if (Array.isArray(result)) leaveList = result;
@@ -161,7 +147,6 @@ export default function LeaveManagementPage() {
         fetchLeaveRequests();
     }, []);
 
-    // FIXED handleAction — no more "API failed: {}"
     const handleAction = useCallback(async (
         employeeId: string,
         action: 'approve' | 'reject',
@@ -208,183 +193,88 @@ export default function LeaveManagementPage() {
             reject_reason: action === "reject" ? rejectReason : "",
         };
 
-        let bearerToken = getCookie("access_token") || getCookie("token") || "";
-
-        const myHeaders = new Headers();
-        myHeaders.append("accept", "*/*");
-        myHeaders.append("Content-Type", "application/json");
-        if (bearerToken) myHeaders.append("Authorization", `Bearer ${bearerToken}`);
-
         try {
-            const response = await fetch(
-                "http://115.187.62.16:8005/VYOMAUMSRestAPI/api/admin/approvalOfEmployeeLeaveRequestByAdmin",
-                { method: "POST", headers: myHeaders, body: JSON.stringify(payload) }
-            );
-
-            let responseData: any = null;
-            try {
-                responseData = await response.json();
-            } catch (e) {
-                responseData = {};
-            }
-
-            // FIX — do NOT treat {} as failure
-            if (response.ok) {
-                toast.success(responseData?.message || "Leave status updated successfully");
-                fetchLeaveRequests();
-            } else {
-                toast.error(responseData?.message || "Failed to update leave status.");
-            }
-
-        } catch (err) {
-            toast.error("Unexpected error occurred");
+            const responseData = await approvalOfEmployeeLeaveRequestByAdmin(payload);
+            toast.success(responseData?.message || "Leave status updated successfully");
+            fetchLeaveRequests();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update leave status.");
         }
 
         setShowRejectRemark(null);
         setRejectRemark("");
         setRejectRemarkError("");
     }, [leaveRequests]);
-    // --- End Fix ---
 
     // ✅ Modal for mandatory reject remark
-    const renderRejectModal = () =>
-        showRejectRemark && (
-            <div
-                style={{
-                    position: "fixed",
-                    zIndex: 9999,
-                    top: 0,
-                    left: 0,
-                    width: "100vw",
-                    height: "100vh",
-                    background: "rgba(0,0,0,0.2)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                }}
-            >
-                <div
-                    style={{
-                        background: "#fff",
-                        borderRadius: 8,
-                        boxShadow: "0 2px 18px 0 rgba(0,0,0,.3)",
-                        padding: 24,
-                        minWidth: 350,
-                        maxWidth: 420,
-                        width: "100%",
-                    }}
-                >
-                    <div style={{ marginBottom: 18, fontWeight: 700, fontSize: 20 }}>
-                        Enter Rejection Remark{" "}
-                        <span
-                            style={{
-                                fontWeight: 400,
-                                fontSize: 14,
-                                color: "#888",
-                            }}
-                        >
-                            (max 20 words, required)
-                        </span>
-                    </div>
-                    <textarea
-                        rows={3}
-                        style={{
-                            width: "100%",
-                            padding: 8,
-                            borderColor: rejectRemarkError ? "red" : "#bbb",
-                            borderWidth: 1,
-                            borderRadius: 5,
-                            fontSize: 15,
-                            marginBottom: 4,
-                            resize: "none",
-                        }}
-                        placeholder="Type reason (max 20 words, required)..."
-                        value={rejectRemark}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            if (wordCount(val) > 20) {
-                                setRejectRemarkError("Remark cannot exceed 20 words");
-                                setRejectRemark(val.split(/\s+/).slice(0, 20).join(" "));
-                            } else if (!val.trim()) {
-                                setRejectRemark(val);
-                                setRejectRemarkError("Remark is required");
-                            } else {
-                                setRejectRemark(val);
-                                setRejectRemarkError("");
-                            }
-                        }}
-                    />
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                        }}
-                    >
-                        <span
-                            style={{
-                                fontSize: 12,
-                                color: rejectRemarkError ? "red" : "#888",
-                                marginRight: 6,
-                            }}
-                        >
-                            {rejectRemarkError ||
-                                `Words: ${wordCount(rejectRemark)}/20`}
-                        </span>
-                        <div>
-                            <button
-                                onClick={() => {
-                                    setShowRejectRemark(null);
-                                    setRejectRemark("");
-                                    setRejectRemarkError("");
-                                }}
-                                style={{
-                                    background: "#eee",
-                                    color: "#333",
-                                    border: "none",
-                                    borderRadius: 5,
-                                    padding: "5px 16px",
-                                    marginRight: 8,
-                                    cursor: "pointer",
-                                }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={() => {
-                                    if (!rejectRemark.trim()) {
-                                        setRejectRemarkError("Remark is required");
-                                        return;
-                                    }
-                                    if (wordCount(rejectRemark) > 20) {
-                                        setRejectRemarkError("Remark cannot exceed 20 words");
-                                        return;
-                                    }
-                                    handleAction(
-                                        showRejectRemark.employeeId,
-                                        "reject",
-                                        showRejectRemark.leaveRequestId,
-                                        rejectRemark.trim()
-                                    );
-                                }}
-                                style={{
-                                    background: "#e14949",
-                                    color: "#fff",
-                                    border: "none",
-                                    borderRadius: 5,
-                                    padding: "5px 18px",
-                                    fontWeight: 600,
-                                    cursor: "pointer",
-                                }}
-                            >
-                                Reject
-                            </button>
+    const renderRejectModal = () => (
+        <Dialog open={!!showRejectRemark} onOpenChange={(open) => !open && setShowRejectRemark(null)}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Reject Leave Request</DialogTitle>
+                    <DialogDescription>
+                        Please provide a reason for rejecting this leave request. This will be shared with the employee.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span className={rejectRemarkError ? "text-red-500 font-medium" : "text-muted-foreground"}>
+                                {rejectRemarkError || "Reason required"}
+                            </span>
+                            <span className={wordCount(rejectRemark) > 20 ? "text-red-500" : "text-muted-foreground"}>
+                                {wordCount(rejectRemark)}/20 words
+                            </span>
                         </div>
+                        <Textarea
+                            placeholder="Type your reason here..."
+                            value={rejectRemark}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (wordCount(val) > 20) {
+                                    setRejectRemarkError("Remark cannot exceed 20 words");
+                                    setRejectRemark(val.split(/\s+/).slice(0, 20).join(" "));
+                                } else if (!val.trim()) {
+                                    setRejectRemark(val);
+                                    setRejectRemarkError("Remark is required");
+                                } else {
+                                    setRejectRemark(val);
+                                    setRejectRemarkError("");
+                                }
+                            }}
+                            className={rejectRemarkError ? "border-red-500 focus-visible:ring-red-500" : ""}
+                        />
                     </div>
                 </div>
-            </div>
-        );
-
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowRejectRemark(null)}>Cancel</Button>
+                    <Button
+                        variant="destructive"
+                        onClick={() => {
+                            if (!rejectRemark.trim()) {
+                                setRejectRemarkError("Remark is required");
+                                return;
+                            }
+                            if (wordCount(rejectRemark) > 20) {
+                                setRejectRemarkError("Remark cannot exceed 20 words");
+                                return;
+                            }
+                            if (showRejectRemark) {
+                                handleAction(
+                                    showRejectRemark.employeeId,
+                                    "reject",
+                                    showRejectRemark.leaveRequestId,
+                                    rejectRemark.trim()
+                                );
+                            }
+                        }}
+                    >
+                        Confirm Rejection
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
 
     const handleSort = (column: keyof LeaveRequest) => {
         if (sortColumn === column) {
@@ -462,8 +352,15 @@ export default function LeaveManagementPage() {
 
     if (loading) {
         return (
-            <div className="p-6 h-screen flex justify-center items-center bg-slate-50 dark:bg-black">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 dark:border-slate-100"></div>
+            <div className="p-6 space-y-6 bg-slate-50/50 dark:bg-black min-h-screen">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <Skeleton className="h-10 w-[300px]" />
+                    <Skeleton className="h-10 w-[250px]" />
+                </div>
+                <div className="space-y-4">
+                    <Skeleton className="h-[125px] w-full rounded-xl" />
+                    <Skeleton className="h-[400px] w-full rounded-xl" />
+                </div>
             </div>
         );
     }
@@ -478,206 +375,279 @@ export default function LeaveManagementPage() {
     }
 
     return (
-        <div className="space-y-6 bg-slate-50 dark:bg-black min-h-screen p-4">
-            <Tabs defaultValue="requests" className="w-full space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <TabsList className="grid w-full md:w-[400px] grid-cols-2">
-                        <TabsTrigger value="requests">Leave Requests</TabsTrigger>
-                        <TabsTrigger value="balances">Leave Balances</TabsTrigger>
-                    </TabsList>
-                    <Input
-                        type="text"
-                        placeholder="Search employee..."
-                        value={search}
-                        onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                        className="w-full md:w-80 bg-white dark:bg-slate-900 dark:text-slate-100 border-slate-200 dark:border-zinc-800"
-                    />
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-black dark:to-zinc-900 p-6 font-sans">
+            <div className="max-w-7xl mx-auto space-y-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Leave Management</h1>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1">Manage employee leave requests and view balances.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500 dark:text-slate-400" />
+                            <Input
+                                type="text"
+                                placeholder="Search employee..."
+                                value={search}
+                                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                                className="pl-9 w-full md:w-[300px] bg-white/80 dark:bg-zinc-900/80 border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-blue-500 transition-all"
+                            />
+                        </div>
+                    </div>
                 </div>
 
-                <TabsContent value="requests">
-                    <Card className="border-slate-200/80 shadow-lg bg-white/50 dark:bg-slate-900/70 dark:border-zinc-800 backdrop-blur-sm">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                                <Filter className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                Leave Requests
-                                <Badge variant="secondary" className="ml-2 bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-slate-200 dark:border-zinc-700">
-                                    {filteredAndSortedRequests.length} records
-                                </Badge>
-                            </CardTitle>
-                        </CardHeader>
+                <Tabs defaultValue="requests" className="w-full space-y-6">
+                    <TabsList className="grid w-full md:w-[400px] grid-cols-2 bg-slate-200/50 dark:bg-zinc-800/50 p-1 rounded-xl">
+                        <TabsTrigger value="requests" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm transition-all">Leave Requests</TabsTrigger>
+                        <TabsTrigger value="balances" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm transition-all">Leave Balances</TabsTrigger>
+                    </TabsList>
 
-                        <CardContent className="p-0">
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader className="bg-slate-100 dark:bg-black">
-                                        <TableRow className="border-b-slate-200 dark:border-b-zinc-800">
-                                            <TableHead className="text-center">
-                                                <Button variant="ghost" onClick={() => handleSort('employee_name')} className="px-0 text-slate-800 dark:text-slate-300 mx-auto flex items-center justify-center">
-                                                    Employee <ArrowUpDown className="ml-1 h-4 w-4" />
-                                                </Button>
-                                            </TableHead>
-                                            <TableHead className="text-center">Type</TableHead>
-                                            <TableHead className="text-center">Duration</TableHead>
-                                            <TableHead className="text-center">Days</TableHead>
-                                            <TableHead className="text-center">Reason</TableHead>
-                                            <TableHead className="text-center">Status</TableHead>
-                                            <TableHead className="text-center">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-
-                                    <TableBody>
-                                        {currentItems.length > 0 ? currentItems.map((req) => (
-                                            <TableRow key={req.leave_request_id || req.employee_id} className="border-b border-slate-200/80 dark:border-zinc-800 hover:bg-slate-100/50">
-                                                <TableCell className="text-center">
-                                                    <div className="flex items-center gap-3 justify-center">
-                                                        <Avatar className="h-10 w-10 border-2 border-white">
-                                                            <AvatarImage src="" alt={req.employee_name} />
-                                                            <AvatarFallback>{req.employee_name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                                                        </Avatar>
-                                                        <div className="text-left">
-                                                            <div className="font-medium">{req.employee_name}</div>
-                                                            <div className="text-xs text-slate-500">Applied: {req.applied_date}</div>
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-center">{req.leave_type_name}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <p>{formatFriendlyDate(req.leave_start_date)}</p>
-                                                    <p className="text-xs text-slate-500">to</p>
-                                                    <p>{formatFriendlyDate(req.leave_end_date)}</p>
-                                                </TableCell>
-                                                <TableCell className="text-center">{duration(req.leave_start_date, req.leave_end_date)} days</TableCell>
-                                                <TableCell className="text-center text-xs max-w-[200px]">
-                                                    <div className="line-clamp-2 break-words">{req.reason_of_leave}</div>
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <Badge variant="outline" className={`capitalize ${getStatusBadgeVariant(req.status)} text-xs flex items-center justify-center`}>
-                                                        <div className={`w-2 h-2 rounded-full mr-1.5 ${getStatusDotColor(req.status)}`}></div>
-                                                        {req.status.toLowerCase()}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <div className="flex justify-center gap-1">
-                                                        {req.status.toLowerCase() === 'pending' ? (
-                                                            <>
-                                                                <TooltipProvider>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Button size="icon" variant="ghost" onClick={() => handleAction(req.employee_id, 'approve', req.leave_request_id)}>
-                                                                                <Check className="h-4 w-4 text-green-600" />
-                                                                            </Button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent className="bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900">
-                                                                            Approve
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </TooltipProvider>
-                                                                <TooltipProvider>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger asChild>
-                                                                            <Button size="icon" variant="ghost" onClick={() => setShowRejectRemark({ employeeId: req.employee_id, leaveRequestId: req.leave_request_id })}>
-                                                                                <X className="h-4 w-4 text-red-600" />
-                                                                            </Button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent className="bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900">
-                                                                            Reject
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </TooltipProvider>
-                                                            </>
-                                                        ) : (
-                                                            <span className="text-xs text-slate-500 italic">{req.status}</span>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        )) : (
-                                            <TableRow>
-                                                <TableCell colSpan={7} className="text-center h-32">
-                                                    <div className="flex flex-col items-center justify-center gap-2">
-                                                        <User className="h-10 w-10 text-slate-400" />
-                                                        <span>No Leave Requests Found</span>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-
-                            {totalPages > 1 && (
-                                <div className="flex justify-between items-center p-3 border-t border-slate-200/60">
-                                    <div className="text-xs">Showing {startIndex + 1}–{Math.min(startIndex + itemsPerPage, filteredAndSortedRequests.length)} of {filteredAndSortedRequests.length}</div>
-                                    <Pagination>
-                                        <PaginationContent>
-                                            <PaginationItem>
-                                                <PaginationPrevious onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} className={currentPage === 1 ? 'opacity-50 pointer-events-none' : ''} />
-                                            </PaginationItem>
-                                            <PaginationItem>
-                                                <span className="px-3 text-xs">Page {currentPage} of {totalPages}</span>
-                                            </PaginationItem>
-                                            <PaginationItem>
-                                                <PaginationNext onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} className={currentPage === totalPages ? 'opacity-50 pointer-events-none' : ''} />
-                                            </PaginationItem>
-                                        </PaginationContent>
-                                    </Pagination>
+                    <TabsContent value="requests" className="space-y-4">
+                        <Card className="border-none shadow-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl ring-1 ring-slate-200 dark:ring-zinc-800">
+                            <CardHeader className="border-b border-slate-100 dark:border-zinc-800/50 pb-4">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                            <Filter className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                        </div>
+                                        Request List
+                                    </CardTitle>
+                                    <Badge variant="secondary" className="bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-slate-200 px-3 py-1 rounded-full">
+                                        {filteredAndSortedRequests.length} Total
+                                    </Badge>
                                 </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+                            </CardHeader>
 
-                <TabsContent value="balances">
-                    <Card className="border-slate-200/80 shadow-lg bg-white/50 dark:bg-slate-900/70 dark:border-zinc-800 backdrop-blur-sm">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-800 dark:text-slate-100">
-                                <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                Employee Leave Balances
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader className="bg-slate-100 dark:bg-black">
-                                        <TableRow>
-                                            <TableHead>Employee Name</TableHead>
-                                            <TableHead className="text-center">SL</TableHead>
-                                            <TableHead className="text-center">CL</TableHead>
-                                            <TableHead className="text-center">PL</TableHead>
-                                            <TableHead className="text-center">Total</TableHead>
-                                            <TableHead className="text-center">Remaining</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {loadingBalances ? (
-                                            <TableRow>
-                                                <TableCell colSpan={6} className="text-center h-24">Loading balances...</TableCell>
+                            <CardContent className="p-0">
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader className="bg-slate-50/80 dark:bg-zinc-900/50">
+                                            <TableRow className="border-b border-slate-100 dark:border-zinc-800 hover:bg-transparent">
+                                                <TableHead className="text-center font-semibold text-slate-600 dark:text-slate-400">
+                                                    <Button variant="ghost" onClick={() => handleSort('employee_name')} className="hover:bg-transparent hover:text-blue-600 p-0 font-semibold flex items-center justify-center gap-1 mx-auto">
+                                                        Employee <ArrowUpDown className="h-3 w-3" />
+                                                    </Button>
+                                                </TableHead>
+                                                <TableHead className="text-center font-semibold text-slate-600 dark:text-slate-400">Type</TableHead>
+                                                <TableHead className="text-center font-semibold text-slate-600 dark:text-slate-400">Duration</TableHead>
+                                                <TableHead className="text-center font-semibold text-slate-600 dark:text-slate-400">Days</TableHead>
+                                                <TableHead className="text-center font-semibold text-slate-600 dark:text-slate-400">Reason</TableHead>
+                                                <TableHead className="text-center font-semibold text-slate-600 dark:text-slate-400">Status</TableHead>
+                                                <TableHead className="text-center font-semibold text-slate-600 dark:text-slate-400">Actions</TableHead>
                                             </TableRow>
-                                        ) : leaveBalances.filter(emp => emp.employee_name.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
-                                            leaveBalances
-                                                .filter(emp => emp.employee_name.toLowerCase().includes(search.toLowerCase()))
-                                                .map((emp) => (
-                                                    <TableRow key={emp.employee_id}>
-                                                        <TableCell className="font-medium">{emp.employee_name}</TableCell>
-                                                        <TableCell className="text-center">{emp.available_sl}</TableCell>
-                                                        <TableCell className="text-center">{emp.available_cl}</TableCell>
-                                                        <TableCell className="text-center">{emp.available_pl}</TableCell>
-                                                        <TableCell className="text-center font-bold">{emp.total_leave}</TableCell>
-                                                        <TableCell className="text-center text-green-600 font-bold">{emp.remaining_leave}</TableCell>
-                                                    </TableRow>
-                                                ))
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell colSpan={6} className="text-center h-24">No data found</TableCell>
+                                        </TableHeader>
+
+                                        <TableBody>
+                                            {currentItems.length > 0 ? currentItems.map((req) => (
+                                                <TableRow key={req.leave_request_id || req.employee_id} className="border-b border-slate-50 dark:border-zinc-800/50 hover:bg-slate-50/80 dark:hover:bg-zinc-800/50 transition-colors">
+                                                    <TableCell className="text-center py-4">
+                                                        <div className="flex items-center gap-3 justify-center">
+                                                            <Avatar className="h-9 w-9 border-2 border-white dark:border-zinc-700 shadow-sm">
+                                                                <AvatarImage src="" alt={req.employee_name} />
+                                                                <AvatarFallback className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 font-medium text-xs">
+                                                                    {req.employee_name.slice(0, 2).toUpperCase()}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            <div className="text-left">
+                                                                <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{req.employee_name}</div>
+                                                                <div className="text-[11px] text-slate-500 dark:text-slate-400">Applied: {req.applied_date}</div>
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Badge variant="outline" className="font-normal bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-700">
+                                                            {req.leave_type_name}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <div className="flex flex-col items-center text-sm">
+                                                            <span className="font-medium text-slate-700 dark:text-slate-300">{formatFriendlyDate(req.leave_start_date)}</span>
+                                                            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">to</span>
+                                                            <span className="font-medium text-slate-700 dark:text-slate-300">{formatFriendlyDate(req.leave_end_date)}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <span className="font-semibold text-slate-700 dark:text-slate-300">{duration(req.leave_start_date, req.leave_end_date)}</span>
+                                                        <span className="text-xs text-slate-500 ml-1">days</span>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <div className="max-w-[180px] mx-auto truncate text-sm text-slate-600 dark:text-slate-400 cursor-help border-b border-dotted border-slate-300 dark:border-zinc-700 inline-block">
+                                                                        {req.reason_of_leave}
+                                                                    </div>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent className="max-w-[300px] p-3 bg-slate-800 text-white border-none shadow-xl">
+                                                                    <p className="text-xs leading-relaxed">{req.reason_of_leave}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <Badge variant="outline" className={`capitalize ${getStatusBadgeVariant(req.status)} px-2.5 py-0.5 text-xs font-semibold shadow-sm border-0 ring-1 ring-inset ring-opacity-20`}>
+                                                            <div className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusDotColor(req.status)}`}></div>
+                                                            {req.status.toLowerCase()}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <div className="flex justify-center gap-2">
+                                                            {req.status.toLowerCase() === 'pending' ? (
+                                                                <>
+                                                                    <TooltipProvider>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    className="h-8 w-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 border border-emerald-200 shadow-sm transition-all"
+                                                                                    onClick={() => handleAction(req.employee_id, 'approve', req.leave_request_id)}
+                                                                                >
+                                                                                    <Check className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>Approve Request</TooltipContent>
+                                                                        </Tooltip>
+                                                                    </TooltipProvider>
+                                                                    <TooltipProvider>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    className="h-8 w-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200 shadow-sm transition-all"
+                                                                                    onClick={() => setShowRejectRemark({ employeeId: req.employee_id, leaveRequestId: req.leave_request_id })}
+                                                                                >
+                                                                                    <X className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>Reject Request</TooltipContent>
+                                                                        </Tooltip>
+                                                                    </TooltipProvider>
+                                                                </>
+                                                            ) : (
+                                                                <span className="text-xs text-slate-400 italic font-medium">Completed</span>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={7} className="text-center h-48">
+                                                        <div className="flex flex-col items-center justify-center gap-3 text-slate-400">
+                                                            <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center">
+                                                                <User className="h-6 w-6" />
+                                                            </div>
+                                                            <span className="font-medium">No Leave Requests Found</span>
+                                                            <p className="text-xs text-slate-400 max-w-[200px]">Try adjusting your search or check back later.</p>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+
+                                {totalPages > 1 && (
+                                    <div className="flex justify-between items-center p-4 border-t border-slate-100 dark:border-zinc-800 bg-slate-50/30 dark:bg-zinc-900/30">
+                                        <div className="text-xs text-slate-500 font-medium">Showing {startIndex + 1}–{Math.min(startIndex + itemsPerPage, filteredAndSortedRequests.length)} of {filteredAndSortedRequests.length}</div>
+                                        <Pagination>
+                                            <PaginationContent>
+                                                <PaginationItem>
+                                                    <PaginationPrevious
+                                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                                        className={`cursor-pointer transition-all ${currentPage === 1 ? 'opacity-50 pointer-events-none' : 'hover:bg-slate-100 dark:hover:bg-zinc-800'}`}
+                                                    />
+                                                </PaginationItem>
+                                                <PaginationItem>
+                                                    <span className="px-4 text-sm font-medium text-slate-700 dark:text-slate-300">Page {currentPage} of {totalPages}</span>
+                                                </PaginationItem>
+                                                <PaginationItem>
+                                                    <PaginationNext
+                                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                                        className={`cursor-pointer transition-all ${currentPage === totalPages ? 'opacity-50 pointer-events-none' : 'hover:bg-slate-100 dark:hover:bg-zinc-800'}`}
+                                                    />
+                                                </PaginationItem>
+                                            </PaginationContent>
+                                        </Pagination>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="balances" className="space-y-4">
+                        <Card className="border-none shadow-xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl ring-1 ring-slate-200 dark:ring-zinc-800">
+                            <CardHeader className="border-b border-slate-100 dark:border-zinc-800/50 pb-4">
+                                <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                                    <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                                        <User className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                    </div>
+                                    Employee Leave Balances
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader className="bg-slate-50/80 dark:bg-zinc-900/50">
+                                            <TableRow className="border-b border-slate-100 dark:border-zinc-800 hover:bg-transparent">
+                                                <TableHead className="font-semibold text-slate-600 dark:text-slate-400 pl-6">Employee Name</TableHead>
+                                                <TableHead className="text-center font-semibold text-slate-600 dark:text-slate-400">SL</TableHead>
+                                                <TableHead className="text-center font-semibold text-slate-600 dark:text-slate-400">CL</TableHead>
+                                                <TableHead className="text-center font-semibold text-slate-600 dark:text-slate-400">PL</TableHead>
+                                                <TableHead className="text-center font-semibold text-slate-600 dark:text-slate-400">Total</TableHead>
+                                                <TableHead className="text-center font-semibold text-slate-600 dark:text-slate-400">Remaining</TableHead>
                                             </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {loadingBalances ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={6} className="text-center h-32">
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            <Skeleton className="h-8 w-8 rounded-full" />
+                                                            <span className="text-sm text-slate-500">Loading balances...</span>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : leaveBalances.filter(emp => emp.employee_name.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
+                                                leaveBalances
+                                                    .filter(emp => emp.employee_name.toLowerCase().includes(search.toLowerCase()))
+                                                    .map((emp) => (
+                                                        <TableRow key={emp.employee_id} className="border-b border-slate-50 dark:border-zinc-800/50 hover:bg-slate-50/80 dark:hover:bg-zinc-800/50 transition-colors">
+                                                            <TableCell className="font-medium pl-6 py-4">
+                                                                <div className="flex items-center gap-3">
+                                                                    <Avatar className="h-8 w-8 border border-slate-200 dark:border-zinc-700">
+                                                                        <AvatarFallback className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200 text-xs">
+                                                                            {emp.employee_name.slice(0, 2).toUpperCase()}
+                                                                        </AvatarFallback>
+                                                                    </Avatar>
+                                                                    {emp.employee_name}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="text-center text-slate-600 dark:text-slate-400">{emp.available_sl}</TableCell>
+                                                            <TableCell className="text-center text-slate-600 dark:text-slate-400">{emp.available_cl}</TableCell>
+                                                            <TableCell className="text-center text-slate-600 dark:text-slate-400">{emp.available_pl}</TableCell>
+                                                            <TableCell className="text-center font-bold text-slate-800 dark:text-slate-200">{emp.total_leave}</TableCell>
+                                                            <TableCell className="text-center">
+                                                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50">
+                                                                    {emp.remaining_leave}
+                                                                </Badge>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                            ) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={6} className="text-center h-32 text-slate-500">
+                                                        No balances found
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
+            </div>
             {renderRejectModal()}
         </div>
     );

@@ -550,9 +550,9 @@ export default function AttendancePage() {
                           <ArrowUpDown className="ml-2 h-4 w-4" />
                         </Button>
                       </TableHead>
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">
+                      {/* <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">
                         Late Remark
-                      </TableHead>
+                      </TableHead> */}
                       <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">Location</TableHead>
                       {/* date_wise_status Show/Hide button */}
                       <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">
@@ -679,13 +679,12 @@ export default function AttendancePage() {
                                     </Badge>
                                   )}
                                 </TableCell>
-                                <TableCell className="py-3 px-4 min-w-[120px] transition-all duration-200">
-                                  {/* Main table "Late Remark" column */}
+                                {/* <TableCell className="py-3 px-4 min-w-[120px] transition-all duration-200">
                                   {row.late_remark
                                     ? <span className="text-xs text-gray-700 dark:text-gray-300">{row.late_remark}</span>
                                     : <span className="text-gray-400 dark:text-gray-600">—</span>
                                   }
-                                </TableCell>
+                                </TableCell> */}
                                 <TableCell className="py-3 px-4 min-w-[100px] transition-all duration-200">
                                   {location ? (
                                     <Button
