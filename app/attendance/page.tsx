@@ -262,9 +262,12 @@ export default function AttendancePage() {
     };
   };
 
+  // ======= EDITED: This section only (handleExportExcel) ======
   const handleExportExcel = () => {
-    // Group data by employee name and collect all their date records
-    const groupedData: { [key: string]: { name: string; dates: { [date: string]: { entry: string; exit: string } } } } = {};
+    // Group data by employee name and collect all their date records,
+    // now including late_remark for each date
+    type ExcelDateValue = { entry: string; exit: string; late_remark: string };
+    const groupedData: { [key: string]: { name: string; dates: { [date: string]: ExcelDateValue } } } = {};
 
     sortedData.forEach(row => {
       const empName = row.employee_name || 'Unknown Employee';
@@ -282,7 +285,8 @@ export default function AttendancePage() {
           const dateKey = moment(dws.attendance_date).format("DD-MM-YYYY");
           groupedData[empName].dates[dateKey] = {
             entry: dws.entry_time || "",
-            exit: dws.exit_time || ""
+            exit: dws.exit_time || "",
+            late_remark: dws.late_remark || ""
           };
         });
       } else {
@@ -291,7 +295,8 @@ export default function AttendancePage() {
         if (dateKey) {
           groupedData[empName].dates[dateKey] = {
             entry: row.checkin_time || "",
-            exit: row.checkout_time || ""
+            exit: row.checkout_time || "",
+            late_remark: row.late_remark || ""
           };
         }
       }
@@ -310,7 +315,7 @@ export default function AttendancePage() {
       return dateA.getTime() - dateB.getTime();
     });
 
-    // Create export data with dynamic columns for each date
+    // Create export data with dynamic columns for each date (Entry, Exit, Late Remark)
     const exportData: any[] = [];
 
     Object.values(groupedData).forEach(emp => {
@@ -322,9 +327,11 @@ export default function AttendancePage() {
         if (emp.dates[date]) {
           rowData[`${date} - Entry`] = emp.dates[date].entry;
           rowData[`${date} - Exit`] = emp.dates[date].exit;
+          rowData[`${date} - Late Remark`] = emp.dates[date].late_remark;
         } else {
           rowData[`${date} - Entry`] = "";
           rowData[`${date} - Exit`] = "";
+          rowData[`${date} - Late Remark`] = "";
         }
       });
 
@@ -341,6 +348,7 @@ export default function AttendancePage() {
     // Trigger download
     XLSX.writeFile(workbook, `attendance_report_${format(new Date(), 'dd-MM-yyyy')}.xlsx`);
   };
+  // ======= END EDIT (handleExportExcel) =======
 
   const toggleRowExpanded = (key: string) => {
     setExpandedRows((prev) => ({
