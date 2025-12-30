@@ -29,6 +29,8 @@ interface DateWiseStatus {
   entry_time: string | null;
   exit_time: string | null;
   late_remark: string | null;
+  check_in_remarks: string | null;
+  check_out_remarks: string | null;
 }
 
 interface AttendanceRecord {
@@ -47,10 +49,10 @@ interface AttendanceRecord {
   checkout_longitude: string | null;
   duration: string | null;
   attendance_status: string | null;
-  // Now add the date_wise_status (optional for backward compatibility)
   date_wise_status?: DateWiseStatus[];
-  // We assume late_remark can be on the main record as well - reflect here:
   late_remark?: string | null;
+  check_in_remarks?: string | null;
+  check_out_remarks?: string | null;
 }
 
 export default function AttendancePage() {
@@ -265,8 +267,14 @@ export default function AttendancePage() {
   // ======= EDITED: This section only (handleExportExcel) ======
   const handleExportExcel = () => {
     // Group data by employee name and collect all their date records,
-    // now including late_remark for each date
-    type ExcelDateValue = { entry: string; exit: string; late_remark: string };
+    // now including late_remark, check_in_remarks, and check_out_remarks for each date
+    type ExcelDateValue = {
+      entry: string;
+      exit: string;
+      late_remark: string;
+      check_in_remarks: string;
+      check_out_remarks: string;
+    };
     const groupedData: { [key: string]: { name: string; dates: { [date: string]: ExcelDateValue } } } = {};
 
     sortedData.forEach(row => {
@@ -286,7 +294,9 @@ export default function AttendancePage() {
           groupedData[empName].dates[dateKey] = {
             entry: dws.entry_time || "",
             exit: dws.exit_time || "",
-            late_remark: dws.late_remark || ""
+            late_remark: dws.late_remark || "",
+            check_in_remarks: dws.check_in_remarks || "",
+            check_out_remarks: dws.check_out_remarks || ""
           };
         });
       } else {
@@ -296,7 +306,9 @@ export default function AttendancePage() {
           groupedData[empName].dates[dateKey] = {
             entry: row.checkin_time || "",
             exit: row.checkout_time || "",
-            late_remark: row.late_remark || ""
+            late_remark: row.late_remark || "",
+            check_in_remarks: row.check_in_remarks || "",
+            check_out_remarks: row.check_out_remarks || ""
           };
         }
       }
@@ -315,7 +327,7 @@ export default function AttendancePage() {
       return dateA.getTime() - dateB.getTime();
     });
 
-    // Create export data with dynamic columns for each date (Entry, Exit, Late Remark)
+    // Create export data with dynamic columns for each date (Entry, Exit, Late Remark, Check In/Out Remarks)
     const exportData: any[] = [];
 
     Object.values(groupedData).forEach(emp => {
@@ -328,10 +340,14 @@ export default function AttendancePage() {
           rowData[`${date} - Entry`] = emp.dates[date].entry;
           rowData[`${date} - Exit`] = emp.dates[date].exit;
           rowData[`${date} - Late Remark`] = emp.dates[date].late_remark;
+          rowData[`${date} - Check In Remark`] = emp.dates[date].check_in_remarks;
+          rowData[`${date} - Check Out Remark`] = emp.dates[date].check_out_remarks;
         } else {
           rowData[`${date} - Entry`] = "";
           rowData[`${date} - Exit`] = "";
           rowData[`${date} - Late Remark`] = "";
+          rowData[`${date} - Check In Remark`] = "";
+          rowData[`${date} - Check Out Remark`] = "";
         }
       });
 
@@ -743,6 +759,8 @@ export default function AttendancePage() {
                                               <th className="p-2 border text-left">Entry</th>
                                               <th className="p-2 border text-left">Exit</th>
                                               <th className="p-2 border text-left">Late Remark</th>
+                                              <th className="p-2 border text-left">Check In Remarks</th>
+                                              <th className="p-2 border text-left">Check Out Remarks</th>
                                             </tr>
                                           </thead>
                                           <tbody>
@@ -772,6 +790,8 @@ export default function AttendancePage() {
                                                 <td className="p-2 border">{dws.entry_time || <span className="text-gray-400">—</span>}</td>
                                                 <td className="p-2 border">{dws.exit_time || <span className="text-gray-400">—</span>}</td>
                                                 <td className="p-2 border">{dws.late_remark || <span className="text-gray-400">—</span>}</td>
+                                                <td className="p-2 border">{dws.check_in_remarks || <span className="text-gray-400">—</span>}</td>
+                                                <td className="p-2 border">{dws.check_out_remarks || <span className="text-gray-400">—</span>}</td>
                                               </tr>
                                             ))}
                                           </tbody>
