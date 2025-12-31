@@ -91,7 +91,7 @@ export default function LoginPage() {
 
         const authData = result;
 
-        if (authData.data && (authData.data.userrole === "HR" || authData.data.userrole === "ADMIN")) {
+        if (authData.data && (authData.data.userrole === "HR" || authData.data.userrole === "ADMIN" || authData.data.userrole === "MANAGEMENT")) {
           document.cookie = `admin_Id=${encodeURIComponent(authData.data.admin_id)};max-age=${60 * 60 * 24}`;
           document.cookie = `username=${encodeURIComponent(authData.data.username)};max-age=${60 * 60 * 24}`;
           document.cookie = `userRole=${encodeURIComponent(authData.data.userrole)};max-age=${60 * 60 * 24}`;
@@ -179,7 +179,7 @@ export default function LoginPage() {
                       <FormItem>
                         <FormLabel>Username</FormLabel>
                         <FormControl>
-                          <Input placeholder="hr0001" {...field} disabled={isLoading} />
+                          <Input placeholder="Enter your username" {...field} disabled={isLoading} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
