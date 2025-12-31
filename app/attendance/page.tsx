@@ -65,6 +65,7 @@ export default function AttendancePage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [mapOpen, setMapOpen] = useState(false);
   const [selectedAttendance, setSelectedAttendance] = useState<AttendanceRecord | null>(null);
+  const [mapLocationType, setMapLocationType] = useState<"checkin" | "checkout">("checkin");
   const [currentPage, setCurrentPage] = useState(1)
   const today = new Date();
   const [startDate, setStartDate] = useState(format(today, "yyyy-MM-dd"));
@@ -221,8 +222,9 @@ export default function AttendancePage() {
     setCurrentPage(1);
   };
 
-  const handleOpenMap = (attendance: AttendanceRecord) => {
+  const handleOpenMap = (attendance: AttendanceRecord, type: "checkin" | "checkout") => {
     setSelectedAttendance(attendance);
+    setMapLocationType(type);
     setMapOpen(true);
   };
 
@@ -577,7 +579,8 @@ export default function AttendancePage() {
                       {/* <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">
                         Late Remark
                       </TableHead> */}
-                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">Location</TableHead>
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">Entry Location</TableHead>
+                      <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">Exit Location</TableHead>
                       {/* date_wise_status Show/Hide button */}
                       <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3 px-4">
                         Date-wise Status
@@ -587,7 +590,7 @@ export default function AttendancePage() {
                   <TableBody>
                     {currentItems.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="h-24 text-center text-gray-500 dark:text-gray-400">
+                        <TableCell colSpan={10} className="h-24 text-center text-gray-500 dark:text-gray-400">
                           <div className="flex flex-col items-center justify-center space-y-2">
                             <User className="h-12 w-12 text-gray-300 dark:text-gray-600" />
                             <span className="text-lg font-medium">No attendance records found</span>
@@ -598,7 +601,8 @@ export default function AttendancePage() {
                     ) : (
                       <>
                         {currentItems.map((row, index) => {
-                          const location = formatLocation(row.checkin_latitude, row.checkin_longitude);
+                          const entryLocation = formatLocation(row.checkin_latitude, row.checkin_longitude);
+                          const exitLocation = formatLocation(row.checkout_latitude, row.checkout_longitude);
                           // Calculate the row number across all pagination
                           const rowNumber = startIndex + index + 1;
                           // Use emp_id-index for key since an employee can be shown on multiple pages with same emp_id if API allows
@@ -710,11 +714,26 @@ export default function AttendancePage() {
                                   }
                                 </TableCell> */}
                                 <TableCell className="py-3 px-4 min-w-[100px] transition-all duration-200">
-                                  {location ? (
+                                  {entryLocation ? (
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => handleOpenMap(row)}
+                                      onClick={() => handleOpenMap(row, "checkin")}
+                                      className="gap-2 h-8 px-3 border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600 dark:hover:bg-gray-800 transition-colors"
+                                    >
+                                      <MapPin className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                      <span className="text-xs font-medium">View</span>
+                                    </Button>
+                                  ) : (
+                                    <span className="text-gray-400 dark:text-gray-600">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="py-3 px-4 min-w-[100px] transition-all duration-200">
+                                  {exitLocation ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleOpenMap(row, "checkout")}
                                       className="gap-2 h-8 px-3 border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600 dark:hover:bg-gray-800 transition-colors"
                                     >
                                       <MapPin className="h-3 w-3 text-blue-600 dark:text-blue-400" />
@@ -745,7 +764,7 @@ export default function AttendancePage() {
                               {/* Expanded date_wise_status panel */}
                               {row.date_wise_status && row.date_wise_status.length > 0 && expandedRows[expandKey] && (
                                 <TableRow className="bg-blue-50/30 dark:bg-blue-900/20">
-                                  <TableCell colSpan={9} className="p-4 pt-2 pb-4 transition">
+                                  <TableCell colSpan={10} className="p-4 pt-2 pb-4 transition">
                                     <div>
                                       <h4 className="font-semibold mb-2 text-blue-700 dark:text-blue-300 text-sm flex items-center gap-2">
                                         <Calendar className="h-4 w-4" /> All Dates Attendance Status
@@ -871,19 +890,25 @@ export default function AttendancePage() {
       <Dialog open={mapOpen} onOpenChange={setMapOpen}>
         <DialogContent className="sm:max-w-[600px] h-[500px]">
           <DialogHeader>
-            <DialogTitle>Employee Check-in Location</DialogTitle>
+            <DialogTitle>Employee {mapLocationType === 'checkin' ? 'Entry' : 'Exit'} Location</DialogTitle>
           </DialogHeader>
-          {selectedAttendance && selectedAttendance.checkin_latitude && selectedAttendance.checkin_longitude && (
-            <div className="h-[400px]">
-              <EmployeeLocationMap
-                location={{
-                  lat: parseFloat(selectedAttendance.checkin_latitude),
-                  lng: parseFloat(selectedAttendance.checkin_longitude),
-                }}
-                employeeName={selectedAttendance.employee_name || "Unknown Employee"}
-              />
-            </div>
-          )}
+          {selectedAttendance && (() => {
+            const lat = mapLocationType === "checkin" ? selectedAttendance.checkin_latitude : selectedAttendance.checkout_latitude;
+            const lng = mapLocationType === "checkin" ? selectedAttendance.checkin_longitude : selectedAttendance.checkout_longitude;
+            if (!lat || !lng) return null;
+
+            return (
+              <div className="h-[400px]">
+                <EmployeeLocationMap
+                  location={{
+                    lat: parseFloat(lat),
+                    lng: parseFloat(lng),
+                  }}
+                  employeeName={selectedAttendance.employee_name || "Unknown Employee"}
+                />
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </>
