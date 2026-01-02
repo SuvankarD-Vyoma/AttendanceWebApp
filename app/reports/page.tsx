@@ -70,7 +70,7 @@ function ReportTypeDropdown({ selectedType, setSelectedType, goToEntryExit }: an
     },
   ];
 
-  const selectedOption = options.find(opt => 
+  const selectedOption = options.find(opt =>
     selectedType === "attendance" ? opt.value === "attendance" : opt.value === "entryexit"
   ) || options[0];
 
@@ -107,11 +107,10 @@ function ReportTypeDropdown({ selectedType, setSelectedType, goToEntryExit }: an
                   goToEntryExit();
                 }
               }}
-              className={`flex items-center px-4 py-2 cursor-pointer transition-colors ${
-                selectedType === opt.value
+              className={`flex items-center px-4 py-2 cursor-pointer transition-colors ${selectedType === opt.value
                   ? "bg-blue-50 dark:bg-blue-900 font-semibold text-blue-700 dark:text-blue-200"
                   : "hover:bg-gray-100 dark:hover:bg-slate-700"
-              }`}
+                }`}
               role="option"
               aria-selected={selectedType === opt.value}
             >
@@ -215,7 +214,7 @@ export default function AttendanceAnalytics() {
         status: "Absent",
         count: summary?.absent_employee || 0,
         percentage: summary?.absent_rate || 0,
-        color: "#ef4444",
+        color: "#873f39a2",
       },
     ];
   }, [attendanceSummary]);
@@ -284,8 +283,8 @@ export default function AttendanceAnalytics() {
       } catch (_) {
         alert(
           "Excel report download is not available because the 'exceljs' library could not be loaded on the client." +
-            "\n\nPlease ensure 'exceljs' is installed with:\n\nnpm install exceljs\n\n" +
-            "Reload the page after installing."
+          "\n\nPlease ensure 'exceljs' is installed with:\n\nnpm install exceljs\n\n" +
+          "Reload the page after installing."
         );
         setDownloading(false);
         return;
@@ -342,7 +341,7 @@ export default function AttendanceAnalytics() {
     } catch (err) {
       alert(
         "Error downloading Excel report. " +
-          (err instanceof Error ? err.message : "")
+        (err instanceof Error ? err.message : "")
       );
       if (typeof console !== "undefined") {
         console.error(err);
@@ -460,10 +459,10 @@ export default function AttendanceAnalytics() {
                 value={monthlyOverview.absent}
                 sub={`${monthlyChartData[2]?.percentage}% of total`}
                 icon={
-                  <Clock className="w-8 h-8 text-red-600 dark:text-red-300" />
+                  <Clock className="w-8 h-8 text-red-600 dark:text-red-100" />
                 }
-                bg="bg-red-100 dark:bg-red-900"
-                color="text-red-600"
+                bg="bg-red-100 dark:bg-red-100"
+                color="#873f39a2"
               />
             </div>
 
@@ -601,15 +600,15 @@ export default function AttendanceAnalytics() {
                                 emp.presentPercent >= 90
                                   ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                                   : emp.presentPercent >= 75
-                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
-                                  : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+                                    : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
                               }
                             >
                               {emp.presentPercent >= 90
                                 ? "Excellent"
                                 : emp.presentPercent >= 75
-                                ? "Good"
-                                : "Poor"}
+                                  ? "Good"
+                                  : "Poor"}
                             </Badge>
                           </td>
                         </tr>
@@ -697,11 +696,10 @@ function Pagination({
         <button
           key={n}
           onClick={() => setCurrentPage(n)}
-          className={`rounded px-3 py-1 text-sm font-medium ${
-            n === currentPage
+          className={`rounded px-3 py-1 text-sm font-medium ${n === currentPage
               ? "bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200"
               : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-          }`}
+            }`}
           aria-current={n === currentPage ? "page" : undefined}
         >
           {n}
@@ -729,9 +727,8 @@ function SummaryCard({ title, value, sub, icon, bg, color }: any) {
               {title}
             </p>
             <p
-              className={`text-3xl font-bold mt-2 ${
-                color || "text-gray-900 dark:text-gray-100"
-              }`}
+              className={`text-3xl font-bold mt-2 ${color || "text-gray-900 dark:text-gray-100"
+                }`}
             >
               {value}
             </p>

@@ -404,7 +404,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
            <div className="flex items-center gap-2">
               <div 
                 className="w-3 h-3 rounded" 
-                style={{ backgroundColor: '#74b70fca' }}
+                style={{ backgroundColor: '#8c9609ca' }}
               />
               <span className="font-bold text-amber-500 text-base">Holiday</span>
            </div>
@@ -683,7 +683,7 @@ function AttendanceBarChartOverride() {
           </Bar>
           <Bar 
             dataKey="Holiday" 
-            fill="#74b70fca"
+            fill="#8c9609ca"
             radius={[6, 6, 0, 0]}
             animationDuration={1000}
           />

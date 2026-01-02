@@ -7,9 +7,14 @@ import RootLayoutClient from "@/components/layout/root-layout-client";
 
 const inter = Inter({ subsets: ["latin"] });
 
+import logo from "../assets/logo.png";
+
 export const metadata: Metadata = {
   title: "Vyoma Innovus Global - Attendance Dashboard",
   description: "Employee attendance tracking system",
+  icons: {
+    icon: logo.src,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

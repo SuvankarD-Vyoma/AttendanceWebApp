@@ -173,7 +173,6 @@ export default function AbsentEmployeesPage() {
 
     const rows = filteredEmployees.map((e) => [
       e.employee_name,
-      e.department,
       e.designation,
       e.email_address,
       e.contact_number,
@@ -185,7 +184,6 @@ export default function AbsentEmployeesPage() {
       head: [
         [
           "Name",
-          "Department",
           "Designation",
           "Email",
           "Phone",
@@ -316,7 +314,7 @@ export default function AbsentEmployeesPage() {
             </p>
           </div>
 
-          <div className="flex gap-3">
+          {/* <div className="flex gap-3">
             <button
               onClick={exportToExcel}
               className="px-5 py-2.5 bg-white border-2 border-green-200 rounded-xl flex gap-2 items-center text-green-700 font-medium btn-hover hover:bg-green-50 hover:border-green-300"
@@ -329,7 +327,7 @@ export default function AbsentEmployeesPage() {
             >
               <Download size={18} /> PDF
             </button>
-          </div>
+          </div> */}
         </div>
 
         {/* ---------------- Search & Filter ---------------- */}
@@ -348,7 +346,7 @@ export default function AbsentEmployeesPage() {
             />
           </div>
 
-          <div className="relative">
+          {/* <div className="relative">
             <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <select
               value={filterDepartment}
@@ -364,7 +362,7 @@ export default function AbsentEmployeesPage() {
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
         </div>
 
         {/* ---------------- Skeleton Loader ---------------- */}
@@ -387,7 +385,6 @@ export default function AbsentEmployeesPage() {
                 <tr>
                   {[
                     "Employee",
-                    "Department",
                     "Designation",
                     "Contact",
                     "Leave Type",
@@ -417,12 +414,6 @@ export default function AbsentEmployeesPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="flex items-center gap-2 text-slate-700">
-                        <Briefcase size={16} className="text-slate-400" />
-                        {emp.department}
-                      </span>
-                    </td>
                     <td className="px-6 py-4 text-slate-600">{emp.designation}</td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-2 text-slate-600 mb-1">
@@ -435,13 +426,17 @@ export default function AbsentEmployeesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`px-4 py-1.5 rounded-full text-xs font-semibold inline-block ${getLeaveTypeColor(
-                          emp.leave_type
-                        )}`}
-                      >
-                        {emp.leave_type}
-                      </span>
+                      {emp.leave_type ? (
+                        <span
+                          className={`px-4 py-1.5 rounded-full text-xs font-semibold inline-block ${getLeaveTypeColor(
+                            emp.leave_type
+                          )}`}
+                        >
+                          {emp.leave_type}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-sm font-medium">--</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span className="flex items-center gap-2 text-slate-700">
@@ -486,21 +481,20 @@ export default function AbsentEmployeesPage() {
             >
               <ChevronLeft size={20} />
             </button>
-            
+
             {Array.from({ length: totalPages }).map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentPage(i + 1)}
-                className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${
-                  currentPage === i + 1
+                className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${currentPage === i + 1
                     ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
                     : "bg-white text-slate-700 border-slate-200 btn-hover hover:border-slate-300"
-                }`}
+                  }`}
               >
                 {i + 1}
               </button>
             ))}
-            
+
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
@@ -535,13 +529,13 @@ export default function AbsentEmployeesPage() {
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                {/* <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
                   <Briefcase size={20} className="text-slate-400" />
                   <div>
                     <p className="text-xs text-slate-500 font-medium">Department</p>
                     <p className="font-semibold text-slate-800">{selectedEmployee.department}</p>
                   </div>
-                </div>
+                </div> */}
 
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
                   <Mail size={20} className="text-slate-400" />
