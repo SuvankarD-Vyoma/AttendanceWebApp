@@ -200,6 +200,8 @@ export default function AbsentEmployeesPage() {
     doc.save("Absent_Employees.pdf");
   };
 
+  console.log("check")
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 p-6">
       <style>{`
@@ -489,8 +491,8 @@ export default function AbsentEmployeesPage() {
                 key={i}
                 onClick={() => setCurrentPage(i + 1)}
                 className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${currentPage === i + 1
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
-                    : "bg-white text-slate-700 border-slate-200 btn-hover hover:border-slate-300"
+                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
+                  : "bg-white text-slate-700 border-slate-200 btn-hover hover:border-slate-300"
                   }`}
               >
                 {i + 1}
