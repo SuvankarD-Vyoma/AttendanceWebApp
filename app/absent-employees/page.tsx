@@ -49,6 +49,7 @@ export default function AbsentEmployeesPage() {
   // Modal
   const [selectedEmployee, setSelectedEmployee] =
     useState<AbsentEmployee | null>(null);
+  console.log(selectedEmployee);
 
   // -----------------------------
   // Fetch Data
