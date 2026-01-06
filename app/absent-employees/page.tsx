@@ -44,6 +44,7 @@ export default function AbsentEmployeesPage() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
+  console.log(currentPage);
 
   // Modal
   const [selectedEmployee, setSelectedEmployee] =
