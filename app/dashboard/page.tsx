@@ -26,6 +26,7 @@ const CustomLabel = (props: any) => {
   const isHoliday = props.chartData[index]?.isHoliday;
 
   console.log("isHoliday", isHoliday);
+  console.log("value", value);
 
   // On holidays, hide all labels (no percentages, no text)
   if (isHoliday) {
