@@ -25,6 +25,8 @@ const CustomLabel = (props: any) => {
   const { x, y, width, value, fill, index } = props;
   const isHoliday = props.chartData[index]?.isHoliday;
 
+  console.log("isHoliday", isHoliday);
+
   // On holidays, hide all labels (no percentages, no text)
   if (isHoliday) {
     return null;
@@ -67,14 +69,14 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (isHoliday) {
       return (
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700">
-           <p className="font-semibold text-gray-900 dark:text-gray-100 mb-2 text-base">{label}</p>
-           <div className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded" 
-                style={{ backgroundColor: '#8c9609ca' }}
-              />
-              <span className="font-bold text-amber-500 text-base">Holiday</span>
-           </div>
+          <p className="font-semibold text-gray-900 dark:text-gray-100 mb-2 text-base">{label}</p>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded"
+              style={{ backgroundColor: '#8c9609ca' }}
+            />
+            <span className="font-bold text-amber-500 text-base">Holiday</span>
+          </div>
         </div>
       );
     }
@@ -84,16 +86,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <p className="font-semibold text-gray-900 dark:text-gray-100 mb-3 text-base">{label}</p>
         {payload.map((entry: any, index: number) => (
           entry.value > 0 && entry.name !== 'Holiday' && (
-          <div key={index} className="flex items-center justify-between gap-6 mb-2 last:mb-0">
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded" 
-                style={{ backgroundColor: entry.fill }}
-              />
-              <span className="text-sm text-gray-600 dark:text-gray-400">{entry.name}</span>
+            <div key={index} className="flex items-center justify-between gap-6 mb-2 last:mb-0">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded"
+                  style={{ backgroundColor: entry.fill }}
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">{entry.name}</span>
+              </div>
+              <span className="font-bold text-gray-900 dark:text-gray-100 text-base">{entry.value}</span>
             </div>
-            <span className="font-bold text-gray-900 dark:text-gray-100 text-base">{entry.value}</span>
-          </div>
           )
         ))}
       </div>
@@ -109,7 +111,7 @@ const CustomLegend = ({ payload }: any) => {
       {payload.map((entry: any, index: number) => {
         return (
           <div key={index} className="flex items-center gap-2">
-            <div 
+            <div
               className="w-4 h-4 rounded shadow-md"
               style={{ backgroundColor: entry.color }}
             />
@@ -185,9 +187,9 @@ function AttendanceBarChartOverride() {
 
         // Calculate max value for the week to set consistent height for Holiday bars
         const maxVal = Math.max(
-          ...apiData.map((item: any) => 
+          ...apiData.map((item: any) =>
             Math.max(item.present_count || 0, item.absent_count || 0, item.on_leave_count || 0)
-          ), 
+          ),
           1 // Default to 1 if all are 0
         );
 
@@ -204,14 +206,14 @@ function AttendanceBarChartOverride() {
             const isHoliday = item.holiday_status === 1;
 
             if (isHoliday) {
-               return {
-                  day: `${dayName} ${fullDate}`,
-                  Present: 0,
-                  Absent: 0,
-                  OnLeave: 0,
-                  Holiday: maxVal,
-                  isHoliday: true
-               };
+              return {
+                day: `${dayName} ${fullDate}`,
+                Present: 0,
+                Absent: 0,
+                OnLeave: 0,
+                Holiday: maxVal,
+                isHoliday: true
+              };
             }
 
             return {
@@ -278,39 +280,39 @@ function AttendanceBarChartOverride() {
         }
       `}</style>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart 
-          data={attendanceChartData} 
+        <BarChart
+          data={attendanceChartData}
           barSize={45}
           barGap={6}
           margin={{ top: 50, right: 30, left: 20, bottom: 5 }}
         >
           <defs>
             <filter id="shadow" height="200%">
-              <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
-              <feOffset dx="0" dy="4" result="offsetblur"/>
+              <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+              <feOffset dx="0" dy="4" result="offsetblur" />
               <feComponentTransfer>
-                <feFuncA type="linear" slope="0.3"/>
+                <feFuncA type="linear" slope="0.3" />
               </feComponentTransfer>
               <feMerge>
-                <feMergeNode/>
-                <feMergeNode in="SourceGraphic"/>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
           </defs>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke="#e5e7eb" 
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="#e5e7eb"
             vertical={false}
             opacity={0.5}
           />
-          <XAxis 
-            dataKey="day" 
+          <XAxis
+            dataKey="day"
             tick={{ fill: '#6b7280', fontSize: 13, fontWeight: 500 }}
             axisLine={{ stroke: '#d1d5db', strokeWidth: 2 }}
             tickLine={false}
             dy={10}
           />
-          <YAxis 
+          <YAxis
             tick={{ fill: '#6b7280', fontSize: 13, fontWeight: 500 }}
             axisLine={{ stroke: '#d1d5db', strokeWidth: 2 }}
             tickLine={false}
@@ -318,38 +320,38 @@ function AttendanceBarChartOverride() {
           />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 0, 0, 0.03)', radius: 8 }} />
           <Legend content={<CustomLegend />} />
-          <Bar 
-            dataKey="Present" 
+          <Bar
+            dataKey="Present"
             fill="#776de1ff"
             radius={[6, 6, 0, 0]}
             animationDuration={1000}
           >
-            <LabelList 
-              content={(props) => <CustomLabel {...props} chartData={attendanceChartData} fill="#3b82f6" />} 
+            <LabelList
+              content={(props) => <CustomLabel {...props} chartData={attendanceChartData} fill="#3b82f6" />}
             />
           </Bar>
-          <Bar 
-            dataKey="Absent" 
+          <Bar
+            dataKey="Absent"
             fill="#c86a61a2"
             radius={[6, 6, 0, 0]}
             animationDuration={1000}
           >
-            <LabelList 
-              content={(props) => <CustomLabel {...props} chartData={attendanceChartData} fill="#fa7a7aff" />} 
+            <LabelList
+              content={(props) => <CustomLabel {...props} chartData={attendanceChartData} fill="#fa7a7aff" />}
             />
           </Bar>
-          <Bar 
-            dataKey="OnLeave" 
+          <Bar
+            dataKey="OnLeave"
             fill="#8a94bbff"
             radius={[6, 6, 0, 0]}
             animationDuration={1000}
           >
-            <LabelList 
-              content={(props) => <CustomLabel {...props} chartData={attendanceChartData} fill="#a855f7" />} 
+            <LabelList
+              content={(props) => <CustomLabel {...props} chartData={attendanceChartData} fill="#a855f7" />}
             />
           </Bar>
-          <Bar 
-            dataKey="Holiday" 
+          <Bar
+            dataKey="Holiday"
             fill="#8c9609ca"
             radius={[6, 6, 0, 0]}
             animationDuration={1000}
