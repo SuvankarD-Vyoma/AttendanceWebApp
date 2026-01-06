@@ -24,21 +24,18 @@ export async function getAbsentEmployeeList({
   myHeaders.append("accept", "*/*");
   myHeaders.append("Content-Type", "application/json");
   myHeaders.append("Authorization", `Bearer ${bearerToken}`);
-
   const body = JSON.stringify({
     admin_id,
     org_id,
     from_date,
     to_date,
   });
-
   const requestOptions: RequestInit = {
     method: "POST",
     headers: myHeaders,
     body,
     redirect: "follow",
   };
-
   try {
     const response = await fetch(apiUrl, requestOptions);
     if (!response.ok) {

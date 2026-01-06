@@ -4,7 +4,6 @@ import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import RootLayoutClient from "@/components/layout/root-layout-client";
-
 const inter = Inter({ subsets: ["latin"] });
 
 import logo from "../assets/logo.png";

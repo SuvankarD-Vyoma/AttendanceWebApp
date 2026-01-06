@@ -80,6 +80,7 @@ export default function AbsentEmployeesPage() {
     }
     fetchData();
   }, []);
+  console.log(absentEmployees);
 
   // -----------------------------
   // Filtering
