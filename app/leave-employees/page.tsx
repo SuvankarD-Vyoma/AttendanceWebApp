@@ -15,7 +15,7 @@ import {
   HeartPulse,
   Coffee,
 } from "lucide-react";
-import { getEmployeeLeaveListByDate } from "@/app/leave-employees/api"; // Imported as instructed
+import { getEmployeeLeaveListByToday } from "@/app/leave-employees/api"; // Imported as instructed
 
 function getTodayDateISO() {
   const today = new Date();
@@ -33,18 +33,16 @@ export default function LeaveAnalytics() {
   const admin_Id = getCookie("admin_Id");
   const todayISO = getTodayDateISO();
 
-  // Fetch leave data using getEmployeeLeaveListByDate for *today* only
+  // Fetch leave data using getEmployeeLeaveListByToday for *today* only
   useEffect(() => {
     async function fetchLeaves() {
       setLoading(true);
       setError(null);
       try {
-        const res = await getEmployeeLeaveListByDate({
-          admin_id: admin_Id as unknown as string,
-          from_date: todayISO,
-          to_date: todayISO,
+        const res = await getEmployeeLeaveListByToday({
+          admin_id: admin_Id as string,
+          org_id: "1",
         });
-
         if (res && (res.status === 0 || res.status === undefined)) {
           setLeaveData(res.data);
         } else {
@@ -61,7 +59,8 @@ export default function LeaveAnalytics() {
       }
     }
 
-    if (admin_Id) fetchLeaves();
+    if (admin_Id) 
+      fetchLeaves();
   }, [admin_Id, todayISO]);
 
   // Memoized leave summary
@@ -110,7 +109,7 @@ export default function LeaveAnalytics() {
         "leave/download-daily-leave-report";
       // Try to use from_date & to_date params for today
       const res = await fetch(
-        `${apiUrl}?admin_id=${admin_Id}&from_date=${todayISO}&to_date=${todayISO}`,
+        `${apiUrl}?admin_id=${admin_Id}&from_date=${todayISO}&to_date=${todayISO}&org_id=1`,
         {
           method: "GET",
           headers: {

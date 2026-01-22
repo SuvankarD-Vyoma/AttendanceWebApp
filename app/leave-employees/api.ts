@@ -3,19 +3,19 @@ import { getApiBaseUrl } from "@/lib/api-config";
 
 export interface LeaveEmployeeListParams {
   admin_id: string;
-  org_id?: number;
-  from_date: string;
-  to_date: string;
+  org_id?: string;
+  from_date?: string;
+  to_date?: string;
   apiUrl?: string;
   token?: string;
   [key: string]: any;
 }
-export async function getEmployeeLeaveListByDate({
+export async function getEmployeeLeaveListByToday({
   admin_id,
-  org_id = 1,
+  org_id = "1",
   from_date,
   to_date,
-  apiUrl = `${getApiBaseUrl()}admin/getEmployeeLeaveListByDate`,
+  apiUrl = `${getApiBaseUrl()}admin/getEmployeeLeaveListByToday`,
   token,
 }: LeaveEmployeeListParams) {
     const bearerToken = token || getCookie("token") || "";
@@ -28,8 +28,7 @@ export async function getEmployeeLeaveListByDate({
   const body = JSON.stringify({
     admin_id,
     org_id,
-    from_date,
-    to_date,
+   
   });
 
   const requestOptions: RequestInit = {
