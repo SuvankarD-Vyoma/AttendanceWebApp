@@ -3,15 +3,15 @@ import { getApiBaseUrl } from "@/lib/api-config";
 
 export async function getAttendenceSummaryDetails(
   admin_id: string,
-  month_number: number,
-  year_number: number
+  start_date: string,
+  end_date: string
 ) {
   const token = getCookie("token") || "";
 
   const body = JSON.stringify({
     admin_id,
-    month_number,
-    year_number,
+    start_date,
+    end_date,
   });
 
   const response = await fetch(`${getApiBaseUrl()}admin/getAttendenceSummaryDetails`, {
