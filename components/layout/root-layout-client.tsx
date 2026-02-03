@@ -13,7 +13,7 @@ export default function RootLayoutClient({ children }: RootLayoutClientProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const pathname = usePathname();
-  const isAuthPage = pathname === "/login";
+  const isAuthPage = pathname === "/login" || pathname === "/privacy-policy";
 
   useEffect(() => {
     setIsMounted(true);
@@ -29,14 +29,14 @@ export default function RootLayoutClient({ children }: RootLayoutClientProps) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <MainSidebar 
-        isOpen={isSidebarOpen} 
-        onToggle={() => setIsSidebarOpen(!isSidebarOpen)} 
+      <MainSidebar
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
       />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <MainHeader 
-          isSidebarOpen={isSidebarOpen} 
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
+        <MainHeader
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
         <div className="flex-1 overflow-auto">
           {children}
