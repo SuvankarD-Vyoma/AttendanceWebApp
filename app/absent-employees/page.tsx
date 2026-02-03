@@ -15,6 +15,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+
 import { useEffect, useState } from "react";
 import { getCookie } from "cookies-next";
 import { getAbsentEmployeeList } from "@/app/absent-employees/api";
@@ -33,11 +35,18 @@ type AbsentEmployee = {
   leave_type: string | null;
   leave_start_date: string;
   leave_end_date: string;
+  absent_date: string;
 };
 
 export default function AbsentEmployeesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
   const [absentEmployees, setAbsentEmployees] = useState<AbsentEmployee[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get("search")?.toString() || ""
+  );
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [loading, setLoading] = useState(true);
 
@@ -49,8 +58,6 @@ export default function AbsentEmployeesPage() {
   // Modal
   const [selectedEmployee, setSelectedEmployee] =
     useState<AbsentEmployee | null>(null);
-  console.log(selectedEmployee);
-  console.log(absentEmployees);
 
   // -----------------------------
   // Fetch Data
@@ -84,6 +91,26 @@ export default function AbsentEmployeesPage() {
     fetchData();
   }, []);
   console.log(absentEmployees);
+
+  // Sync with URL params
+  useEffect(() => {
+    const query = searchParams.get("search")?.toString() || "";
+    if (query !== searchTerm) {
+      setSearchTerm(query);
+    }
+  }, [searchParams]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+    const params = new URLSearchParams(searchParams);
+    if (value) {
+      params.set("search", value);
+    } else {
+      params.delete("search");
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
 
   // -----------------------------
   // Filtering
@@ -185,16 +212,7 @@ export default function AbsentEmployeesPage() {
     ]);
 
     (doc as any).autoTable({
-      head: [
-        [
-          "Name",
-          "Designation",
-          "Email",
-          "Phone",
-          "Leave Type",
-          "Dates",
-        ],
-      ],
+      head: [["Name", "Designation", "Email", "Phone", "Leave Type", "Dates"]],
       body: rows,
       startY: 22,
     });
@@ -335,16 +353,19 @@ export default function AbsentEmployeesPage() {
         </div>
 
         {/* ---------------- Search & Filter ---------------- */}
-        <div className="flex gap-4 mb-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
+        <div
+          className="flex gap-4 mb-6 animate-slide-up"
+          style={{ animationDelay: "0.1s" }}
+        >
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              size={20}
+            />
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search by name, department, designation..."
               className="w-full pl-12 pr-4 py-3.5 border-2 border-slate-200 rounded-xl bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all outline-none font-medium"
             />
@@ -373,17 +394,17 @@ export default function AbsentEmployeesPage() {
         {loading && (
           <div className="grid grid-cols-1 gap-4 animate-fade-in">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-20 skeleton rounded-xl"
-              />
+              <div key={i} className="h-20 skeleton rounded-xl" />
             ))}
           </div>
         )}
 
         {/* ---------------- TABLE ---------------- */}
         {!loading && (
-          <div className="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-xl shadow-slate-200/50 animate-slide-up" style={{ animationDelay: "0.2s" }}>
+          <div
+            className="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-xl shadow-slate-200/50 animate-slide-up"
+            style={{ animationDelay: "0.2s" }}
+          >
             <table className="min-w-full">
               <thead className="bg-gradient-to-r from-slate-100 to-slate-50">
                 <tr>
@@ -391,8 +412,8 @@ export default function AbsentEmployeesPage() {
                     "Employee",
                     "Designation",
                     "Contact",
-                    "Leave Type",
-                    "Leave Dates",
+                    
+                    "Absent Date",
                     "Action",
                   ].map((h) => (
                     <th
@@ -407,7 +428,10 @@ export default function AbsentEmployeesPage() {
 
               <tbody>
                 {paginatedData.map((emp) => (
-                  <tr key={emp.emp_id} className="border-b border-slate-100 table-row">
+                  <tr
+                    key={emp.emp_id}
+                    className="border-b border-slate-100 table-row"
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold">
@@ -418,7 +442,9 @@ export default function AbsentEmployeesPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{emp.designation}</td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {emp.designation}
+                    </td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center gap-2 text-slate-600 mb-1">
                         <Mail size={14} className="text-slate-400" />
@@ -429,7 +455,7 @@ export default function AbsentEmployeesPage() {
                         {emp.contact_number}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    {/* <td className="px-6 py-4">
                       {emp.leave_type ? (
                         <span
                           className={`px-4 py-1.5 rounded-full text-xs font-semibold inline-block ${getLeaveTypeColor(
@@ -439,18 +465,15 @@ export default function AbsentEmployeesPage() {
                           {emp.leave_type}
                         </span>
                       ) : (
-                        <span className="text-slate-400 text-sm font-medium">--</span>
+                        <span className="text-slate-400 text-sm font-medium">
+                          --
+                        </span>
                       )}
+                    </td> */}
+                     <td className="px-6 py-4 text-slate-600">
+                      {emp.absent_date}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="flex items-center gap-2 text-slate-700">
-                        <Calendar size={16} className="text-slate-400" />
-                        {getLeaveDateRange(
-                          emp.leave_start_date,
-                          emp.leave_end_date
-                        )}
-                      </span>
-                    </td>
+                   
                     <td className="px-6 py-4">
                       <button
                         onClick={() => setSelectedEmployee(emp)}
@@ -465,8 +488,13 @@ export default function AbsentEmployeesPage() {
                 {paginatedData.length === 0 && (
                   <tr>
                     <td colSpan={7} className="text-center py-16">
-                      <UserX size={48} className="mx-auto text-slate-300 mb-4" />
-                      <p className="text-slate-500 font-medium">No absent employees found.</p>
+                      <UserX
+                        size={48}
+                        className="mx-auto text-slate-300 mb-4"
+                      />
+                      <p className="text-slate-500 font-medium">
+                        No absent employees found.
+                      </p>
                     </td>
                   </tr>
                 )}
@@ -490,17 +518,20 @@ export default function AbsentEmployeesPage() {
               <button
                 key={i}
                 onClick={() => setCurrentPage(i + 1)}
-                className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${currentPage === i + 1
-                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
-                  : "bg-white text-slate-700 border-slate-200 btn-hover hover:border-slate-300"
-                  }`}
+                className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${
+                  currentPage === i + 1
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
+                    : "bg-white text-slate-700 border-slate-200 btn-hover hover:border-slate-300"
+                }`}
               >
                 {i + 1}
               </button>
             ))}
 
             <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              onClick={() =>
+                setCurrentPage(Math.min(totalPages, currentPage + 1))
+              }
               disabled={currentPage === totalPages}
               className="px-3 py-2 rounded-lg border-2 border-slate-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed btn-hover"
             >
@@ -528,7 +559,9 @@ export default function AbsentEmployeesPage() {
                   <h2 className="text-2xl font-bold text-slate-800">
                     {selectedEmployee.employee_name}
                   </h2>
-                  <p className="text-slate-500">{selectedEmployee.designation}</p>
+                  <p className="text-slate-500">
+                    {selectedEmployee.designation}
+                  </p>
                 </div>
               </div>
 
@@ -545,27 +578,42 @@ export default function AbsentEmployeesPage() {
                   <Mail size={20} className="text-slate-400" />
                   <div>
                     <p className="text-xs text-slate-500 font-medium">Email</p>
-                    <p className="font-semibold text-slate-800">{selectedEmployee.email_address}</p>
+                    <p className="font-semibold text-slate-800">
+                      {selectedEmployee.email_address}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
                   <Phone size={20} className="text-slate-400" />
                   <div>
-                    <p className="text-xs text-slate-500 font-medium">Contact</p>
-                    <p className="font-semibold text-slate-800">{selectedEmployee.contact_number}</p>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Contact
+                    </p>
+                    <p className="font-semibold text-slate-800">
+                      {selectedEmployee.contact_number}
+                    </p>
                   </div>
                 </div>
 
                 <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200">
-                  <p className="text-xs text-blue-700 font-medium mb-2">Leave Information</p>
+                  <p className="text-xs text-blue-700 font-medium mb-2">
+                    Leave Information
+                  </p>
                   <div className="flex items-center justify-between">
-                    <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${getLeaveTypeColor(selectedEmployee.leave_type)}`}>
+                    <span
+                      className={`px-4 py-1.5 rounded-full text-sm font-semibold ${getLeaveTypeColor(
+                        selectedEmployee.leave_type
+                      )}`}
+                    >
                       {selectedEmployee.leave_type}
                     </span>
                     <span className="flex items-center gap-2 text-slate-700 font-medium">
                       <Calendar size={16} />
-                      {getLeaveDateRange(selectedEmployee.leave_start_date, selectedEmployee.leave_end_date)}
+                      {getLeaveDateRange(
+                        selectedEmployee.leave_start_date,
+                        selectedEmployee.leave_end_date
+                      )}
                     </span>
                   </div>
                 </div>

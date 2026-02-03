@@ -29,6 +29,7 @@ export async function getLeaveRequestsByAdmin(admin_id: string) {
     }
 }
 
+
 export async function approvalOfEmployeeLeaveRequestByAdmin(payload: any) {
     try {
         const token = getCookie("token") || "";
@@ -48,7 +49,6 @@ export async function approvalOfEmployeeLeaveRequestByAdmin(payload: any) {
         } catch (e) {
             responseData = {};
         }
-
         if (response.ok) {
             return responseData;
         } else {
@@ -60,6 +60,7 @@ export async function approvalOfEmployeeLeaveRequestByAdmin(payload: any) {
         throw error;
     }
 }
+
 
 export async function getEmployeeAvailableLeaveList(admin_id: string) {
     try {

@@ -52,6 +52,7 @@
     "eslint": "8.57.0",
     "eslint-config-next": "15.3.5",
     "exceljs": "^4.4.0",
+    "force": "^0.0.3",
     "input-otp": "^1.2.4",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",

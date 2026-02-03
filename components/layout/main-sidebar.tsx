@@ -16,7 +16,8 @@ import {
   Calendar,
   FileText,
   Clock,
-  LogOut
+  LogOut,
+  Shield
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -105,6 +106,7 @@ export default function MainSidebar({ isOpen, onToggle }: MainSidebarProps) {
         { label: "Entry/Exit Time", href: "/reports/entry-exitTime" }
       ]
     },
+    { icon: Shield, label: "Privacy Policy", href: "/privacy-policy" },
   ];
 
   return (

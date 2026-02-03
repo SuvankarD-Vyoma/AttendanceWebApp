@@ -1,6 +1,8 @@
 // Fetch attendance info from API
 import { getApiBaseUrl } from "@/lib/api-config";
 export async function getAdminAttendanceInfo(token: string, admin_id: string, from_date: string, to_date: string) {
+ 
+ console.log(getApiBaseUrl());
   const res = await fetch(`${getApiBaseUrl()}admin/getAdminAttendanceInfo`, {
     method: "POST",
     headers: {

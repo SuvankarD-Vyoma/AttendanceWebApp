@@ -33,6 +33,7 @@ export default function LoginPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  console.log(getApiBaseUrl());
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
