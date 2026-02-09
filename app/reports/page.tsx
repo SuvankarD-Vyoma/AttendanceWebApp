@@ -161,8 +161,8 @@ export default function AttendanceAnalytics() {
       try {
         const res = await getAttendenceSummaryDetails(
           admin_Id as string,
-          start_date as number,
-          end_date as number
+          new Date(start_date).getTime(),
+          new Date(end_date).getTime()
         );
         if (res?.status === 0) {
           setAttendanceSummary(res.data);
