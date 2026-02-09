@@ -3,8 +3,8 @@ import { getApiBaseUrl } from "@/lib/api-config";
 
 export async function getAttendenceSummaryDetails(
   admin_id: string,
-  start_date: string,
-  end_date: string
+  start_date: number,
+  end_date: number
 ) {
   const token = getCookie("token") || "";
 

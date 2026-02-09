@@ -149,9 +149,9 @@ export default function AttendanceAnalytics() {
   const year_number = parseInt(selectedMonth.split("-")[0]);
 
   // Derive start and end dates for the API (DD-MM-YYYY format)
-  const start_date = `01-${month_number.toString().padStart(2, "0")}-${year_number}`;
+  const start_date = parseInt(`01-${month_number.toString().padStart(2, "0")}-${year_number}`);
   const daysInMonth = new Date(year_number, month_number, 0).getDate();
-  const end_date = `${daysInMonth.toString().padStart(2, "0")}-${month_number.toString().padStart(2, "0")}-${year_number}`;
+  const end_date = parseInt(`${daysInMonth.toString().padStart(2, "0")}-${month_number.toString().padStart(2, "0")}-${year_number}`);
 
   useEffect(() => {
     // Only fetch if attendance summary mode is active
@@ -161,8 +161,8 @@ export default function AttendanceAnalytics() {
       try {
         const res = await getAttendenceSummaryDetails(
           admin_Id as string,
-          start_date,
-          end_date
+          start_date as number,
+          end_date as number
         );
         if (res?.status === 0) {
           setAttendanceSummary(res.data);

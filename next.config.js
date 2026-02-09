@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: "/attendance",
+  // basePath: "/attendance",
   eslint: {
     ignoreDuringBuilds: true,
   },
