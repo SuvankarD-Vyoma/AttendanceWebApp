@@ -52,6 +52,7 @@ interface LeaveRequest {
     leave_request_id?: string | number;
     admin_id?: string;
     leave_status_id?: number;
+    session_type_id?: string;
 }
 
 export default function LeaveManagementPage() {
@@ -132,7 +133,8 @@ export default function LeaveManagementPage() {
                 days: item.days || 0,
                 applied_date: item.applied_date || '',
                 leave_request_id: item.leave_request_id ?? item.id,
-                leave_status_id: item.leave_status_id != null ? Number(item.leave_status_id) : 1
+                leave_status_id: item.leave_status_id != null ? Number(item.leave_status_id) : 1,
+                session_type_id: item.session_type_id || '',
             }));
 
             setLeaveRequests(leaveData);
@@ -191,6 +193,7 @@ export default function LeaveManagementPage() {
             leave_start_date: toDDMMYYYY(leaveRequestObj?.leave_start_date || ""),
             leave_end_date: toDDMMYYYY(leaveRequestObj?.leave_end_date || ""),
             reject_reason: action === "reject" ? rejectReason : "",
+            session_type_id: leaveRequestObj?.session_type_id || '',
         };
 
         try {

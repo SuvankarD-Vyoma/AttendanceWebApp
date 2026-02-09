@@ -108,8 +108,8 @@ function ReportTypeDropdown({ selectedType, setSelectedType, goToEntryExit }: an
                 }
               }}
               className={`flex items-center px-4 py-2 cursor-pointer transition-colors ${selectedType === opt.value
-                  ? "bg-blue-50 dark:bg-blue-900 font-semibold text-blue-700 dark:text-blue-200"
-                  : "hover:bg-gray-100 dark:hover:bg-slate-700"
+                ? "bg-blue-50 dark:bg-blue-900 font-semibold text-blue-700 dark:text-blue-200"
+                : "hover:bg-gray-100 dark:hover:bg-slate-700"
                 }`}
               role="option"
               aria-selected={selectedType === opt.value}
@@ -148,6 +148,11 @@ export default function AttendanceAnalytics() {
   const month_number = parseInt(selectedMonth.split("-")[1]);
   const year_number = parseInt(selectedMonth.split("-")[0]);
 
+  // Derive start and end dates for the API (DD-MM-YYYY format)
+  const start_date = `01-${month_number.toString().padStart(2, "0")}-${year_number}`;
+  const daysInMonth = new Date(year_number, month_number, 0).getDate();
+  const end_date = `${daysInMonth.toString().padStart(2, "0")}-${month_number.toString().padStart(2, "0")}-${year_number}`;
+
   useEffect(() => {
     // Only fetch if attendance summary mode is active
     async function fetchSummary() {
@@ -156,8 +161,8 @@ export default function AttendanceAnalytics() {
       try {
         const res = await getAttendenceSummaryDetails(
           admin_Id as string,
-          month_number,
-          year_number
+          start_date,
+          end_date
         );
         if (res?.status === 0) {
           setAttendanceSummary(res.data);
@@ -175,12 +180,12 @@ export default function AttendanceAnalytics() {
     if (
       selectedType === "attendance" &&
       admin_Id &&
-      month_number &&
-      year_number
+      start_date &&
+      end_date
     ) {
       fetchSummary();
     }
-  }, [admin_Id, month_number, year_number, selectedType]);
+  }, [admin_Id, start_date, end_date, selectedType]);
 
   const monthlyOverview = useMemo(() => {
     if (!attendanceSummary) return {};
@@ -697,8 +702,8 @@ function Pagination({
           key={n}
           onClick={() => setCurrentPage(n)}
           className={`rounded px-3 py-1 text-sm font-medium ${n === currentPage
-              ? "bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200"
-              : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+            ? "bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200"
+            : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
             }`}
           aria-current={n === currentPage ? "page" : undefined}
         >
