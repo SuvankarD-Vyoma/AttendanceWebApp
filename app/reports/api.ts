@@ -3,11 +3,12 @@ import { getApiBaseUrl } from "@/lib/api-config";
 
 export async function getAttendenceSummaryDetails(
   admin_id: string,
-  start_date: number,
-  end_date: number
+  start_date: string,
+  end_date: string
 ) {
   const token = getCookie("token") || "";
 
+  // Dates should already be in DD-MM-YYYY format from the caller
   const body = JSON.stringify({
     admin_id,
     start_date,

@@ -137,32 +137,53 @@ export default function AttendanceAnalytics() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState("attendance");
-  // ADD pagination
   const [currentPage, setCurrentPage] = useState(1);
+
+  // NEW: Manual date range selection
+  const [manualStartDate, setManualStartDate] = useState<string>("");
+  const [manualEndDate, setManualEndDate] = useState<string>("");
 
   const rowsPerPage = 10;
 
   const router = useRouter();
 
   const admin_Id = getCookie("admin_Id");
+
+  // month_number and year_number from selectedMonth
   const month_number = parseInt(selectedMonth.split("-")[1]);
   const year_number = parseInt(selectedMonth.split("-")[0]);
 
-  // Derive start and end dates for the API (DD-MM-YYYY format)
-  const start_date = parseInt(`01-${month_number.toString().padStart(2, "0")}-${year_number}`);
+  // Derive start and end dates (DD-MM-YYYY format for the API)
+  // If manual date range is set and valid, use those; otherwise, fall back to selectedMonth
+  function getDateStringDMY(date: string) {
+    // Date in YYYY-MM-DD format, convert to DD-MM-YYYY
+    if (!date) return "";
+    const [yyyy, mm, dd] = date.split("-");
+    return `${dd}-${mm}-${yyyy}`;
+  }
+
+  // Generate default start/end for selectedMonth
+  const defaultStartDate = `01-${month_number.toString().padStart(2, "0")}-${year_number}`;
   const daysInMonth = new Date(year_number, month_number, 0).getDate();
-  const end_date = parseInt(`${daysInMonth.toString().padStart(2, "0")}-${month_number.toString().padStart(2, "0")}-${year_number}`);
+  const defaultEndDate = `${daysInMonth.toString().padStart(2, "0")}-${month_number.toString().padStart(2, "0")}-${year_number}`;
+
+  // Use manual date range if both are specified; fallback to selectedMonth otherwise
+  const effectiveStartDate = manualStartDate && manualEndDate ? getDateStringDMY(manualStartDate) : defaultStartDate;
+  const effectiveEndDate = manualStartDate && manualEndDate ? getDateStringDMY(manualEndDate) : defaultEndDate;
+
+  // Pass the formatted date strings directly to the API (DD-MM-YYYY format)
+  const start_date = effectiveStartDate;
+  const end_date = effectiveEndDate;
 
   useEffect(() => {
-    // Only fetch if attendance summary mode is active
     async function fetchSummary() {
       setLoading(true);
       setError(null);
       try {
         const res = await getAttendenceSummaryDetails(
           admin_Id as string,
-          new Date(start_date).getTime(),
-          new Date(end_date).getTime()
+          start_date,
+          end_date
         );
         if (res?.status === 0) {
           setAttendanceSummary(res.data);
@@ -244,9 +265,6 @@ export default function AttendanceAnalytics() {
     return employees.filter((emp: any) =>
       emp.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    // eslint-disable-next-line
-    // (side effect in useMemo is technically not correct, but acceptable since setCurrentPage is idempotent for same search)
-    // Alternatively, you could use an useEffect([searchTerm, employees]) for setCurrentPage(1)
   }, [employees, searchTerm]);
 
   // Calculate pagination
@@ -296,14 +314,30 @@ export default function AttendanceAnalytics() {
       }
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet(`Attendance Report`);
-      const monthName = new Date(selectedMonth).toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
+      // Use report title/interval for filename and header:
+      let reportIntervalStr = "";
+      if (manualStartDate && manualEndDate) {
+        // Format "DD MMM YYYY - DD MMM YYYY"
+        const fmt = (d: string) => {
+          if (!d) return "";
+          const dt = new Date(d);
+          return dt.toLocaleDateString("en-US", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+        };
+        reportIntervalStr = `${fmt(manualStartDate)} - ${fmt(manualEndDate)}`;
+      } else {
+        reportIntervalStr = new Date(selectedMonth).toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        });
+      }
       const header: any[] = ["Employee Name"];
-      header.push(`${monthName} - Late Count`);
-      header.push(`${monthName} - Absent Count`);
-      header.push(`${monthName} - Present Count`);
+      header.push(`${reportIntervalStr} - Late Count`);
+      header.push(`${reportIntervalStr} - Absent Count`);
+      header.push(`${reportIntervalStr} - Present Count`);
       worksheet.addRow(header);
 
       employees.forEach((emp: any) => {
@@ -338,7 +372,11 @@ export default function AttendanceAnalytics() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `attendance_report_${selectedMonth}.xlsx`;
+      if (manualStartDate && manualEndDate) {
+        a.download = `attendance_report_${manualStartDate}_to_${manualEndDate}.xlsx`;
+      } else {
+        a.download = `attendance_report_${selectedMonth}.xlsx`;
+      }
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -357,12 +395,9 @@ export default function AttendanceAnalytics() {
   };
 
   function goToEntryExitPage() {
-    // Navigate to the entry-exitTime page (should be present in your pages directory)
     router.push("/reports/entry-exitTime");
   }
 
-  // Reset pagination when filter/search changes
-  // This useEffect is cleaner than a setCurrentPage inside filteredEmployees
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, employees]);
@@ -393,37 +428,103 @@ export default function AttendanceAnalytics() {
                 Comprehensive attendance analytics and employee summaries
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <ReportTypeDropdown
-                selectedType={selectedType}
-                setSelectedType={setSelectedType}
-                goToEntryExit={goToEntryExitPage}
-              />
-              <div className="flex items-center gap-2 bg-white dark:bg-slate-900 rounded-lg px-4 py-2 shadow-sm border border-gray-200 dark:border-gray-700">
-                <Calendar className="w-5 h-5 text-gray-500" />
-                <input
-                  type="month"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="border-0 bg-transparent focus:outline-none dark:text-gray-100"
+            <div className="flex flex-col md:flex-row items-stretch gap-3">
+              <div className="flex items-center gap-3">
+                <ReportTypeDropdown
+                  selectedType={selectedType}
+                  setSelectedType={setSelectedType}
+                  goToEntryExit={goToEntryExitPage}
                 />
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 rounded-lg px-4 py-2 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <Calendar className="w-5 h-5 text-gray-500" />
+                  <input
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(e) => {
+                      setSelectedMonth(e.target.value);
+                      setManualStartDate(""); // reset manual override
+                      setManualEndDate("");
+                    }}
+                    className="border-0 bg-transparent focus:outline-none dark:text-gray-100"
+                  />
+                </div>
+                <Button
+                  onClick={handleDownloadReport}
+                  disabled={downloading}
+                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
+                >
+                  {downloading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />{" "}
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" /> Export Report
+                    </>
+                  )}
+                </Button>
               </div>
-              <Button
-                onClick={handleDownloadReport}
-                disabled={downloading}
-                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
-              >
-                {downloading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />{" "}
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 mr-2" /> Export Report
-                  </>
-                )}
-              </Button>
+              {/* NEW: Start/End date pickers UI section */}
+              <div className="flex items-center gap-3 mt-3 md:mt-0">
+                <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">OR Custom Range:</span>
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 rounded-lg px-4 py-2 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <label htmlFor="start-date" className="text-xs mr-2 text-gray-600 dark:text-gray-300">
+                    Start
+                  </label>
+                  <input
+                    id="start-date"
+                    type="date"
+                    max={manualEndDate || undefined}
+                    value={manualStartDate}
+                    onChange={(e) => {
+                      setManualStartDate(e.target.value);
+                      // Unset selectedMonth so new report shows
+                      if (e.target.value && manualEndDate) {
+                        setSelectedMonth(
+                          e.target.value.slice(0, 7)
+                        );
+                      }
+                    }}
+                    className="border-0 bg-transparent focus:outline-none dark:text-gray-100 text-xs"
+                  />
+                  <label htmlFor="end-date" className="text-xs ml-2 mr-2 text-gray-600 dark:text-gray-300">
+                    End
+                  </label>
+                  <input
+                    id="end-date"
+                    type="date"
+                    min={manualStartDate || undefined}
+                    value={manualEndDate}
+                    onChange={(e) => {
+                      setManualEndDate(e.target.value);
+                      // Unset selectedMonth so new report shows
+                      if (manualStartDate && e.target.value) {
+                        setSelectedMonth(
+                          manualStartDate.slice(0, 7)
+                        );
+                      }
+                    }}
+                    className="border-0 bg-transparent focus:outline-none dark:text-gray-100 text-xs"
+                  />
+                  {/* Reset */}
+                  {(manualStartDate || manualEndDate) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setManualStartDate("");
+                        setManualEndDate("");
+                      }}
+                      className="px-2 py-0 text-xs text-gray-400 dark:text-gray-400 hover:text-blue-700"
+                      title="Clear date range"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -475,7 +576,9 @@ export default function AttendanceAnalytics() {
             <Card className="mb-8 border-0 shadow-lg bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
               <CardHeader>
                 <CardTitle className="text-xl dark:text-gray-100">
-                  Monthly Attendance Overview
+                  {manualStartDate && manualEndDate
+                    ? "Attendance Overview for Custom Range"
+                    : "Monthly Attendance Overview"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -511,11 +614,27 @@ export default function AttendanceAnalytics() {
                       Employee Attendance Summary
                     </CardTitle>
                     <p className="text-sm text-gray-600 mt-1 dark:text-gray-400">
-                      Monthly breakdown for{" "}
-                      {new Date(selectedMonth).toLocaleDateString("en-US", {
-                        month: "long",
-                        year: "numeric",
-                      })}
+                      {manualStartDate && manualEndDate
+                        ? <>
+                          Custom breakdown for{" "}
+                          <span className="font-medium">
+                            {new Date(manualStartDate).toLocaleDateString("en-US", {
+                              day: "2-digit", month: "short", year: "numeric"
+                            })}
+                            {" - "}
+                            {new Date(manualEndDate).toLocaleDateString("en-US", {
+                              day: "2-digit", month: "short", year: "numeric"
+                            })}
+                          </span>
+                        </>
+                        : <>
+                          Monthly breakdown for{" "}
+                          {new Date(selectedMonth).toLocaleDateString("en-US", {
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </>
+                      }
                     </p>
                   </div>
                   <div className="relative">
@@ -541,7 +660,6 @@ export default function AttendanceAnalytics() {
                     {Math.min(currentPage * rowsPerPage, totalEmployeesCount)}{" "}
                     of {totalEmployeesCount} employees
                   </div>
-                  {/* Pagination navigation, repeated at top and bottom! */}
                   <Pagination
                     currentPage={currentPage}
                     setCurrentPage={setCurrentPage}
